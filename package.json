@@ -1,0 +1,26 @@
+{
+  "name": "Multi-Screen-Capture-with-Electron-App",
+  "version": "1.0.0",
+  "description": "This project contains example about multiscreen capture via electron-js",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mhmttkmk0352/Multi-Screen-Capture-with-Electron-App.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/mhmttkmk0352/Multi-Screen-Capture-with-Electron-App/issues"
+  },
+  "homepage": "https://github.com/mhmttkmk0352/Multi-Screen-Capture-with-Electron-App#readme",
+  "devDependencies": {
+    "electron": "^19.0.8"
+  },
+  "dependencies": {
+    "socket.io-client": "^4.5.1"
+  }
+}
