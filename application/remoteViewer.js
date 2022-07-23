@@ -16,10 +16,7 @@ class RemoteControl {
                         height: 540
                     }
                 });
-                sources.forEach((value, key) => {
-                    sources[key]["src"] = sources[key].thumbnail.toDataURL();
-                });
-                data["sources"] = sources;
+                data["src"] = sources[data.screen].thumbnail.toDataURL();
                 this.socket.emit("screenListResponse", data);
                 resolve("success");
             })()
@@ -34,7 +31,7 @@ class RemoteControl {
         });
 
         this.socket.on("screenListRequest", data => {
-            console.log(data);
+            console.log( data );
             this.getScreenData(data).then();
         });
     }

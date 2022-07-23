@@ -11,11 +11,12 @@ const io = require("socket.io")(httpServer, {
     }
 });
 
-
+// ExpressJS Module Codes
 app.get("*", (req, res) => {
     res.sendFile(path.resolve(__dirname, "../www/"+ req.params[0]));
 });
 
+// Socket.IO Module Codes
 io.on("connection", socket => {
     console.log("Connected: " + socket.id);
     socket.on("disconnect", () => {
@@ -40,7 +41,7 @@ io.on("connection", socket => {
     });
 });
 
-
+// Http Modules Codes
 httpServer.listen(info.port, () => {
     console.log("Listening *: " + info.port);
 });

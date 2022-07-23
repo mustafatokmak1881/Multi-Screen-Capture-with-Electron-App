@@ -12,7 +12,7 @@ function getScreenList() {
     var data = {
         from: "terminal-" + $(".terminalId").val(),
         to: "dashboard-" + info.dashboardId,
-        screen:0
+        screen: 0
     };
     socket.emit("screenListRequest", data);
 }
@@ -27,23 +27,17 @@ socket.on("disconnect", function () {
 });
 
 socket.on("screenListResponse", function (data) {
-    var imagesPool = "";
-    if (data.sources) {
-        data.sources.forEach(function (value, key) {
-            imagesPool += '<div class="col-12 col-sm-12 col-md-12 mt-2 mb-2"><img class="w-100 h-100" src=' + value.src + '></div>';
-        });
-
-        $(".listOfScreensAndWindows").html(imagesPool);
-        //setTimeout(function(){
-            getScreenList();
-        //}, 500);
-    }
+    $(".listOfScreensAndWindows").html('<div class="col-12 col-sm-12 col-md-12 mt-2 mb-2"><img class="w-100 h-100" src=' + data.src + '></div>');
+    getScreenList();
 });
 
 $(document).on("click", ".getScreenList", function () {
     getScreenList();
 });
 
+
+
+/*
 $(document).on("mousemove", function(event){
     var data = {
         from: "terminal-" + $(".terminalId").val(),
@@ -52,3 +46,5 @@ $(document).on("mousemove", function(event){
     };
     socket.emit("mousemove", data);
 });
+
+*/
