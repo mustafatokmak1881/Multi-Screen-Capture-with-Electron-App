@@ -1,6 +1,6 @@
 
 var info = {
-    host: "10.0.7.209",
+    host: "192.168.1.153",
     port: 3001,
     dashboardId: new Date().getTime() + "-" + Math.floor(Math.random() * 99999)
 }
@@ -12,7 +12,8 @@ function getScreenList() {
     var data = {
         from: "terminal-" + $(".terminalId").val(),
         to: "dashboard-" + info.dashboardId,
-        screen: 0
+        screen: 0,
+        dimension: "960x540" // Max width: 1280, max height: 720
     };
     socket.emit("screenListRequest", data);
 }

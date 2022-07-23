@@ -2,7 +2,7 @@
 const { desktopCapturer } = require("electron");
 const io = require("socket.io-client");
 
-let info = { host: "10.0.7.209", port: 3001, id: 1 }
+let info = { host: "192.168.1.153", port: 3001, id: 1 }
 
 class RemoteControl {
 
@@ -12,8 +12,8 @@ class RemoteControl {
                 let sources = await desktopCapturer.getSources({
                     types: ["screen"],
                     thumbnailSize: {
-                        width: 960,
-                        height: 540
+                        width: parseInt(data.dimension.split("x")[0]),
+                        height: parseInt(data.dimension.split("x")[1])
                     }
                 });
                 data["src"] = sources[data.screen].thumbnail.toDataURL();
