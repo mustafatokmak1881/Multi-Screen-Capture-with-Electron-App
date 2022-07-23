@@ -2,7 +2,7 @@
 const { desktopCapturer } = require("electron");
 const io = require("socket.io-client");
 
-let info = { host: "192.168.1.153", port: 3001, id: 1 }
+let info = { host: "10.0.7.209", port: 3001, id: 1 }
 
 class RemoteControl {
 

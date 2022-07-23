@@ -1,6 +1,6 @@
 
 var info = {
-    host: "192.168.1.153",
+    host: "10.0.7.209",
     port: 3001,
     dashboardId: new Date().getTime() + "-" + Math.floor(Math.random() * 99999)
 }
@@ -28,7 +28,7 @@ socket.on("disconnect", function () {
 
 socket.on("screenListResponse", function (data) {
     $(".listOfScreensAndWindows").html('<div class="col-12 col-sm-12 col-md-12 mt-2 mb-2"><img class="w-100 h-100" src=' + data.src + '></div>');
-    getScreenList();
+      getScreenList();
 });
 
 $(document).on("click", ".getScreenList", function () {
