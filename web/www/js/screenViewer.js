@@ -11,7 +11,8 @@ var socket = io.connect("http://" + info.host + ":" + info.port);
 function getScreenList() {
     var data = {
         from: "terminal-" + $(".terminalId").val(),
-        to: "dashboard-" + info.dashboardId
+        to: "dashboard-" + info.dashboardId,
+        screen:0
     };
     socket.emit("screenListRequest", data);
 }
@@ -29,7 +30,7 @@ socket.on("screenListResponse", function (data) {
     var imagesPool = "";
     if (data.sources) {
         data.sources.forEach(function (value, key) {
-            imagesPool += '<div class="col-12 col-sm-12 col-md-6 mt-2 mb-2"><img class="w-100 h-100" src=' + value.src + '></div>';
+            imagesPool += '<div class="col-12 col-sm-12 col-md-12 mt-2 mb-2"><img class="w-100 h-100" src=' + value.src + '></div>';
         });
 
         $(".listOfScreensAndWindows").html(imagesPool);

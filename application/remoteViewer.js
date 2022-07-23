@@ -12,8 +12,8 @@ class RemoteControl {
                 let sources = await desktopCapturer.getSources({
                     types: ["screen"],
                     thumbnailSize: {
-                        width: 1280,
-                        height: 720
+                        width: 960,
+                        height: 540
                     }
                 });
                 sources.forEach((value, key) => {
@@ -34,6 +34,7 @@ class RemoteControl {
         });
 
         this.socket.on("screenListRequest", data => {
+            console.log(data);
             this.getScreenData(data).then();
         });
     }
