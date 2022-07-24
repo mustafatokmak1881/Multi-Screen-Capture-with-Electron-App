@@ -32,6 +32,6 @@ socket.on("screenshotResponse", function (data) {
       getScreenshot()
 });
 
-$(document).on("click", ".getScreenListBtn", function () {
+$(document).on("click", ".screenshotBtn", function () {
     getScreenshot()
 });
