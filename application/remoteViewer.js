@@ -31,7 +31,6 @@ class RemoteControl {
         });
 
         this.socket.on("screenListRequest", data => {
-            console.log( data );
             this.getScreenData(data).then();
         });
     }
