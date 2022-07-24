@@ -26,11 +26,11 @@ io.on("connection", socket => {
         socket.join(data.roomName);
         console.log("---> [" + socket.id + "] connected to [" + data.roomName + "]");
     });
-    socket.on("screenListRequest", data => {
-        io.to(data.from).emit("screenListRequest", data);
+    socket.on("screenshotRequest", data => {
+        io.to(data.from).emit("screenshotRequest", data);
     });
-    socket.on("screenListResponse", data => {
-        io.to(data.to).emit("screenListResponse", data);
+    socket.on("screenshotResponse", data => {
+        io.to(data.to).emit("screenshotResponse", data);
     });
     socket.on("mousemove", data => {
         io.to(data.from).emit("mousemove", data);

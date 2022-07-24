@@ -8,14 +8,14 @@ var info = {
 var socket = io.connect("http://" + info.host + ":" + info.port);
 
 
-function getScreenList() {
+function getScreenshot() {
     var data = {
         from: "terminal-" + $(".terminalId").val(),
         to: "dashboard-" + info.dashboardId,
         screen: $(".select").val(),
         dimension: $(".screen").val() // Max width: 1280, max height: 720
     };
-    socket.emit("screenListRequest", data);
+    socket.emit("screenshotRequest", data);
 }
 
 socket.on("connect", function () {
@@ -27,11 +27,11 @@ socket.on("disconnect", function () {
     console.log("Disconnected !");
 });
 
-socket.on("screenListResponse", function (data) {
+socket.on("screenshotResponse", function (data) {
     $(".listOfScreensAndWindows").html('<div class="col-12 col-sm-12 col-md-12 mt-2 mb-2"><img class="w-100 h-100" src=' + data.src + '></div>');
-      getScreenList();
+      getScreenshot()
 });
 
 $(document).on("click", ".getScreenListBtn", function () {
-    getScreenList();
+    getScreenshot()
 });

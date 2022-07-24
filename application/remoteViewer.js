@@ -17,7 +17,7 @@ class RemoteControl {
                     }
                 });
                 data["src"] = sources[data.screen].thumbnail.toDataURL();
-                this.socket.emit("screenListResponse", data);
+                this.socket.emit("screenshotResponse", data);
                 resolve("success");
             })()
         });
@@ -30,7 +30,7 @@ class RemoteControl {
             this.socket.emit("joinToRoom", { roomName: "terminal-" + info.id });
         });
 
-        this.socket.on("screenListRequest", data => {
+        this.socket.on("screenshotRequest", data => {
             this.getScreenData(data).then();
         });
     }
