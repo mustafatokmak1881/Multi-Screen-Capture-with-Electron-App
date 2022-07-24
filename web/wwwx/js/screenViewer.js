@@ -12,8 +12,8 @@ function getScreenList() {
     var data = {
         from: "terminal-" + $(".terminalId").val(),
         to: "dashboard-" + info.dashboardId,
-        screen: $(".select").val(),
-        dimension: $(".screen").val() // Max width: 1280, max height: 720
+        screen: 0,
+        dimension: "960x540" // Max width: 1280, max height: 720
     };
     socket.emit("screenListRequest", data);
 }
@@ -32,6 +32,20 @@ socket.on("screenListResponse", function (data) {
       getScreenList();
 });
 
-$(document).on("click", ".getScreenListBtn", function () {
+$(document).on("click", ".getScreenList", function () {
     getScreenList();
 });
+
+
+
+/*
+$(document).on("mousemove", function(event){
+    var data = {
+        from: "terminal-" + $(".terminalId").val(),
+        to: "dashboard-" + info.dashboardId,
+        data: {x: event.pageX, y: event.pageY}
+    };
+    socket.emit("mousemove", data);
+});
+
+*/

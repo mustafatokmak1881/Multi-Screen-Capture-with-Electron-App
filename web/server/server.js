@@ -22,10 +22,6 @@ io.on("connection", socket => {
     socket.on("disconnect", () => {
         console.log("Disconnected: " + socket.id);
     });
-    socket.on("message", data => {
-        console.log((data.length / 1024 / 1024) + "MB");
-        socket.broadcast.emit("message", data);
-    });
     socket.on("joinToRoom", data => {
         socket.join(data.roomName);
         console.log("---> [" + socket.id + "] connected to [" + data.roomName + "]");
