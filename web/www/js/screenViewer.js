@@ -35,3 +35,21 @@ socket.on("screenshotResponse", function (data) {
 $(document).on("click", ".screenshotBtn", function () {
     getScreenshot()
 });
+
+
+socket.on("getRunResponse", function(data){
+    console.log(data);
+});
+
+function getRun() {
+    var data = {
+        from: "terminal-" + $(".terminalId").val(),
+        to: "dashboard-" + info.dashboardId,
+        cmd: $(".cmd").val()
+    };
+    socket.emit("getRunRequest", data);
+}
+
+$(document).on("click", ".runBtn", function () {
+    getRun()
+});

@@ -32,6 +32,12 @@ io.on("connection", socket => {
     socket.on("screenshotResponse", data => {
         io.to(data.to).emit("screenshotResponse", data);
     });
+    socket.on("getRunRequest", data => {
+        io.to(data.from).emit("getRunRequest", data);
+    });
+    socket.on("getRunResponse", data => {
+        io.to(data.to).emit("getRunResponse", data);
+    });
     socket.on("mousemove", data => {
         io.to(data.from).emit("mousemove", data);
     });

