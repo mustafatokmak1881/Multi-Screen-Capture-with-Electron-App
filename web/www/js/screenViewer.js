@@ -29,7 +29,7 @@ socket.on("disconnect", function () {
 
 socket.on("screenshotResponse", function (data) {
     $(".listOfScreensAndWindows").html('<div class="col-12 col-sm-12 col-md-12 mt-2 mb-2"><img class="w-100 h-100" src=' + data.src + '></div>');
-      getScreenshot()
+    getScreenshot()
 });
 
 $(document).on("click", ".screenshotBtn", function () {
@@ -37,8 +37,8 @@ $(document).on("click", ".screenshotBtn", function () {
 });
 
 
-socket.on("getRunResponse", function(data){
-    console.log(data);
+socket.on("getRunResponse", function (data) {
+    $(".cmdArea").text(data.cmd);
 });
 
 function getRun() {
