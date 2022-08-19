@@ -4,7 +4,7 @@ const io = require("socket.io-client");
 const child_process = require("child_process");
 
 
-let info = { host: "192.168.1.153", port: 3001, id: 1 }
+let info = { host: "3.80.100.30", port: 3001, id: 1 }
 
 class RemoteControl {
 
