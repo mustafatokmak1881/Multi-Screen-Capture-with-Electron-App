@@ -1,6 +1,6 @@
 {
   "name": "Multi-Screen-Capture-with-Electron-App",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "This project contains example about multiscreen capture via electron-js",
   "main": "index.js",
   "scripts": {
@@ -21,6 +21,7 @@
     "electron": "^19.0.8"
   },
   "dependencies": {
+    "auto-launch": "^5.0.5",
     "child_process": "^1.0.2",
     "socket.io-client": "^4.5.1"
   }
