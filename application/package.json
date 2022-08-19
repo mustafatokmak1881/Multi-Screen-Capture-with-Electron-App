@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "npx electron-builder --publish always --ia32"
+    "build": "npx electron-builder --ia32"
   },
   "repository": {
     "type": "git",
