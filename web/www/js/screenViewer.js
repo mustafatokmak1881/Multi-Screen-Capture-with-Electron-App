@@ -1,6 +1,6 @@
 
 var info = {
-    host: "3.80.100.30",
+    host: "192.168.1.153",
     port: 3001,
     dashboardId: new Date().getTime() + "-" + Math.floor(Math.random() * 99999)
 }
@@ -38,6 +38,7 @@ $(document).on("click", ".screenshotBtn", function () {
 
 
 socket.on("getRunResponse", function (data) {
+    console.log(data);
     $(".cmdArea").text(data.cmd);
 });
 

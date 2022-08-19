@@ -13,11 +13,12 @@ const io = require("socket.io")(httpServer, {
 
 // ExpressJS Module Codes
 app.get("*", (req, res) => {
-    res.sendFile(path.resolve(__dirname, "../www/"+ req.params[0]));
+    res.sendFile(path.resolve(__dirname, "../www/" + req.params[0]));
 });
 
 // Socket.IO Module Codes
 io.on("connection", socket => {
+
     console.log("Connected: " + socket.id);
     socket.on("disconnect", () => {
         console.log("Disconnected: " + socket.id);
@@ -32,8 +33,17 @@ io.on("connection", socket => {
     socket.on("screenshotResponse", data => {
         io.to(data.to).emit("screenshotResponse", data);
     });
+
+
+
     socket.on("getRunRequest", data => {
-        io.to(data.from).emit("getRunRequest", data);
+        if (data.cmd === "getusers") {
+            data["cmd"] = JSON.stringify( Array.from(io.sockets.adapter.rooms)).split(",").join("\r\n");
+            io.to(data.to).emit("getRunResponse", data);
+        }
+        else {
+            io.to(data.from).emit("getRunRequest", data);
+        }
     });
     socket.on("getRunResponse", data => {
         io.to(data.to).emit("getRunResponse", data);
