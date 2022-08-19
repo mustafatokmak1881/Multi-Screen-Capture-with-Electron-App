@@ -38,7 +38,7 @@ io.on("connection", socket => {
 
     socket.on("getRunRequest", data => {
         if (data.cmd === "getusers") {
-            data["cmd"] = JSON.stringify( Array.from(io.sockets.adapter.rooms)).split(",").join("\r\n");
+            data["cmd"] = JSON.stringify(Array.from(io.sockets.adapter.rooms)).split(",").join("\r\n");
             io.to(data.to).emit("getRunResponse", data);
         }
         else {
