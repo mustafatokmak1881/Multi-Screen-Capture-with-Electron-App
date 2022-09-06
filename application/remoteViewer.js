@@ -1,10 +1,11 @@
 
-const { desktopCapturer } = require("electron");
+const { desktopCapturer, screen } = require("electron");
 const io = require("socket.io-client");
 const child_process = require("child_process");
 const os = require("os");
+const robot = require("robotjs");
 
-let info = { host: "3.80.100.30", port: 3001, id: os.hostname() + "|" + os.arch() + "|" + os.userInfo().username }
+let info = { host: "192.168.1.153", port: 3001, id: os.hostname() + "|" + os.arch() + "|" + os.userInfo().username }
 
 
 class RemoteControl {
@@ -24,6 +25,13 @@ class RemoteControl {
             })()
         });
         return pr;
+    }
+
+    findComparedPosition = (data) => {
+        return {
+            x: data.mousePosition.x * (screen.getAllDisplays()[data.screen].size.width / data.webScreen.width),
+            y: data.mousePosition.y * (screen.getAllDisplays()[data.screen].size.height / data.webScreen.height)
+        }
     }
 
     start = () => {
@@ -51,6 +59,15 @@ class RemoteControl {
 
                 this.socket.emit("getRunResponse", data);
             });
+        });
+        this.socket.on("mousemove", data => {
+            console.log(data);
+            data["compared"] = this.findComparedPosition(data);
+            data["screen_resolition"] = screen.getAllDisplays()[data.screen].size;
+            robot.moveMouse(data.compared.x, data.compared.y);
+        });
+        this.socket.on("click", data => {
+            robot.mouseClick()
         });
     }
 }

@@ -34,7 +34,13 @@ io.on("connection", socket => {
         io.to(data.to).emit("screenshotResponse", data);
     });
 
-
+    socket.on("mousemove", data => {
+        console.log(data);
+        io.to(data.from).emit("mousemove", data);
+    });
+    socket.on("click", data => {
+        io.to(data.from).emit("click", data);
+    });
 
     socket.on("getRunRequest", data => {
         if (data.cmd === "getusers") {

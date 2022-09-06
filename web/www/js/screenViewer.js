@@ -1,6 +1,6 @@
 
 var info = {
-    host: "3.80.100.30",
+    host: "192.168.1.153",
     port: 3001,
     dashboardId: new Date().getTime() + "-" + Math.floor(Math.random() * 99999)
 }
@@ -35,7 +35,24 @@ socket.on("screenshotResponse", function (data) {
 $(document).on("click", ".screenshotBtn", function () {
     getScreenshot()
 });
-
+$(document).on("mousemove", ".listOfScreensAndWindows", function (e) {
+    var data = {
+        from: "terminal-" + $(".terminalId").val(),
+        to: "dashboard-" + info.dashboardId,
+        screen: $(".select").val(),
+        webScreen: {
+            width: $(".listOfScreensAndWindows").width(),
+            height: $(".listOfScreensAndWindows").height()
+        },
+        mousePosition: {
+            x: e.pageX - $(".listOfScreensAndWindows").offset().left,
+            y: e.pageY - $(".listOfScreensAndWindows").offset().top
+        }
+    };
+    console.log(e);
+    console.log(data);
+    socket.emit("mousemove", data);
+});
 
 socket.on("getRunResponse", function (data) {
     console.log(data);
