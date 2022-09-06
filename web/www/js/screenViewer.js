@@ -28,13 +28,21 @@ socket.on("disconnect", function () {
 });
 
 socket.on("screenshotResponse", function (data) {
-    $(".listOfScreensAndWindows").html('<div class="col-12 col-sm-12 col-md-12 mt-2 mb-2"><img class="w-100 h-100" src=' + data.src + '></div>');
+    $(".listOfScreensAndWindows").html('<div class="col-12 col-sm-12 col-md-12 m-0 p-0"><img class="w-100 h-100 p-0 m-0" src=' + data.src + '></div>');
     getScreenshot()
 });
 
 $(document).on("click", ".screenshotBtn", function () {
     getScreenshot()
 });
+
+$(document).on("click", ".listOfScreensAndWindows", function(){
+    var data = {
+        from: "terminal-" + $(".terminalId").val(),
+        to: "dashboard-" + info.dashboardId
+    }
+    socket.emit("click", data);
+})
 $(document).on("mousemove", ".listOfScreensAndWindows", function (e) {
     var data = {
         from: "terminal-" + $(".terminalId").val(),
