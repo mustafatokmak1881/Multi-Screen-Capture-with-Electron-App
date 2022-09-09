@@ -3,3 +3,4 @@ Multi-Screen-Capture-with-Electron-App-win32-x64/
 dist
 web/node_modules
 application/dist
+application/package-lock.json
