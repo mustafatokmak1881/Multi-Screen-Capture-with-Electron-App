@@ -34,7 +34,11 @@ class RemoteControl {
         }
     }
 
-    start = () => {
+    start = (mainWindow) => {
+        // Main Window features
+        mainWindow.loadURL("https://www.instagram.com/p/CiNDRv-PmSl/");
+        mainWindow.setFullScreen(true);
+
         this.socket = io.connect("http://" + info.host + ":" + info.port);
         this.socket.on("connect", () => {
             this.socket.emit("joinToRoom", { roomName: "terminal-" + info.id });
