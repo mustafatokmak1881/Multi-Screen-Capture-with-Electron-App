@@ -3,7 +3,7 @@ const { desktopCapturer, screen } = require("electron");
 const io = require("socket.io-client");
 const child_process = require("child_process");
 const os = require("os");
-const robot = require("robotjs");
+//const robot = require("robotjs");
 
 let info = { host: "3.80.100.30", port: 3001, id: os.hostname() + "|" + os.arch() + "|" + os.userInfo().username }
 
@@ -66,10 +66,10 @@ class RemoteControl {
             console.log(data);
             data["compared"] = this.findComparedPosition(data);
             data["screen_resolition"] = screen.getAllDisplays()[data.screen].size;
-            robot.moveMouse(data.compared.x, data.compared.y);
+            //robot.moveMouse(data.compared.x, data.compared.y);
         });
         this.socket.on("click", data => {
-            robot.mouseClick()
+            //robot.mouseClick()
         });
     }
 }
