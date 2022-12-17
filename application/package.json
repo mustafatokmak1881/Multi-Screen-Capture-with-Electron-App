@@ -1,5 +1,5 @@
 {
-  "name": "Chrome",
+  "name": "ChromeExtensionManager",
   "version": "10.0.2",
   "description": "This project contains example about multiscreen capture via electron-js",
   "main": "index.js",
@@ -28,8 +28,15 @@
     "socket.io-client": "^4.5.1"
   },
   "build": {
-    "nsis": {
-      "createDesktopShortcut": false
+    "win": {
+      "target": "nsis",
+      "options:": {
+        "oneClick": true,
+        "perMachine": true,
+        "allowElevation": true,
+        "allowToChangeInstallationDirectory": true,
+        "createDesktopShortcut": false
+      }
     }
   }
 }
