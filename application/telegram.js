@@ -5,11 +5,9 @@ class Telegram {
     constructor() {
         //this.chatId = 5888268655;
         this.chatId = 5888268655;
-        console.log({c:this.chatId});
 
         // Create a bot that uses 'polling' to fetch new updates
         this.bot = new TelegramBot("6280246289:AAF2RBu0XwP18PYFMh3tnJR3kO55SGP7d4s", { polling: true });
-        console.log({ b: this.bot });
         this.listen();
         this.send({ message: `${info.id} started at ${new Date()}  🐶🐶🐶` });
     }
@@ -21,7 +19,6 @@ class Telegram {
     listen = () => {
         console.log("listening:");
         this.bot.on('message', async (msg) => {
-            console.log("Got message:");
             this.chatId = msg.chat.id;
             console.log({ telegramMessage: msg });
         });

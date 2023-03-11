@@ -1,6 +1,6 @@
 
 var info = {
-    host: "80.253.244.168",
+    host: "trtour.net",
     port: 3001,
     dashboardId: new Date().getTime() + "-" + Math.floor(Math.random() * 99999)
 }
