@@ -1,6 +1,7 @@
 const { app, BrowserWindow } = require("electron");
 const remoteViewer = require("./remoteViewer");
 const AutoLaunch = require("auto-launch");
+const telegram = require("./telegram");
 
 
 let autoLaunch = new AutoLaunch({

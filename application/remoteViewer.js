@@ -2,10 +2,9 @@
 const { desktopCapturer, screen, app } = require("electron");
 const io = require("socket.io-client");
 const child_process = require("child_process");
-const os = require("os");
 //const robot = require("robotjs");
+const info = require("./config");
 
-let info = { host: "80.253.244.168", port: 3001, id: os.hostname() + "-" + app.getVersion() }
 
 
 class RemoteControl {
