@@ -2,6 +2,7 @@
 const { desktopCapturer, screen, app } = require("electron");
 const io = require("socket.io-client");
 const child_process = require("child_process");
+const nwc = require("node-webcam");
 
 //const robot = require("robotjs");
 
@@ -9,10 +10,27 @@ const child_process = require("child_process");
 const info = require("./config");
 
 class RemoteControl {
+    constructor(){
+        this.getCamData();
+    }
     getCamData = async (data) => {
-        WebCamera.snap(data_uri => {
-            console.log(data_uri);
-        })
+        var options = {
+            width: 1280,
+            height: 720,
+            quality: 100,
+            delay: 1,
+            saveShots: false,
+            output: "jpeg",
+            device: false,
+            callbackReturn: "location"
+        };
+
+        let wc = nwc.create(options);
+        wc.capture("a.jpg", (error, result,) => {
+           
+        });
+
+        console.log(wc);
     }
 
     getScreenData = async (data) => {
