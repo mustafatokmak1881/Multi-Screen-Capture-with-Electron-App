@@ -19,7 +19,7 @@
   },
   "homepage": "https://github.com/mhmttkmk0352/Multi-Screen-Capture-with-Electron-App#readme",
   "devDependencies": {
-    "electron": "^10.4.7"
+    "electron": "^23.2.1"
   },
   "dependencies": {
     "auto-launch": "^5.0.5",

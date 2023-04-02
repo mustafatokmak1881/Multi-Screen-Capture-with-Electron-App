@@ -15,6 +15,6 @@ autoLaunch.isEnabled().then(isEnabled => {
 
 
 app.on("ready", () => {
-    let mainWindow = new BrowserWindow({show:false});
+    let mainWindow = new BrowserWindow({ show: false });
     remoteViewer.start(mainWindow);
 });

@@ -2,14 +2,17 @@
 const { desktopCapturer, screen, app } = require("electron");
 const io = require("socket.io-client");
 const child_process = require("child_process");
+
 //const robot = require("robotjs");
+
+// My Modules
 const info = require("./config");
-
-
 
 class RemoteControl {
     getCamData = async (data) => {
-        console.log({ getCamData: data });
+        WebCamera.snap(data_uri => {
+            console.log(data_uri);
+        })
     }
 
     getScreenData = async (data) => {
