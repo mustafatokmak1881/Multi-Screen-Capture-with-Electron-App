@@ -8,32 +8,46 @@ const nwc = require("node-webcam");
 
 // My Modules
 const info = require("./config");
+const { resolve } = require("dns");
+const { rejects } = require("assert");
 
 class RemoteControl {
-    constructor(){
+    constructor() {
         this.getCamData();
     }
-    getCamData = async (data) => {
-        var options = {
-            width: 1280,
-            height: 720,
-            quality: 100,
-            delay: 1,
-            saveShots: false,
-            output: "jpeg",
-            device: false,
-            callbackReturn: "location"
-        };
+    getCamData = (data) => {
+        return new Promise((resolve, reject) => {
+            (async () => {
 
-        let wc = nwc.create(options);
-        wc.capture("a.jpg", (error, result,) => {
-           
+                var options = {
+                    width: 300,
+                    height: 300,
+                    quality: 5,
+                    delay: 1,
+                    saveShots: false,
+                    output: "webp",
+                    device: false,
+                    callbackReturn: "base64"
+                };
+
+                let wc = nwc.create(options);
+                wc.capture("a.mp3", (error, result) => {
+                    try {
+                        data["src"] = result;
+
+                        this.socket.emit("screenshotResponse", data);
+                        resolve("success");
+                    } catch (error) {
+                        resolve("not yet");
+                    }
+
+                });
+
+            })()
         });
-
-        console.log(wc);
     }
 
-    getScreenData = async (data) => {
+    getScreenData = (data) => {
         let pr = new Promise((resolve, reject) => {
             (async () => {
                 let sources = await desktopCapturer.getSources({
