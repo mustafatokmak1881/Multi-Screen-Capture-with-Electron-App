@@ -35,7 +35,6 @@ io.on("connection", socket => {
     });
 
     socket.on("mousemove", data => {
-        console.log(data);
         io.to(data.from).emit("mousemove", data);
     });
     socket.on("click", data => {

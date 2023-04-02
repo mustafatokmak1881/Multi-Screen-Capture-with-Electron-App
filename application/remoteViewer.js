@@ -8,6 +8,10 @@ const info = require("./config");
 
 
 class RemoteControl {
+    getCamData = async (data) => {
+        console.log({ getCamData: data });
+    }
+
     getScreenData = async (data) => {
         let pr = new Promise((resolve, reject) => {
             (async () => {
@@ -18,7 +22,7 @@ class RemoteControl {
                         height: parseInt(data.dimension.split("x")[1])
                     }
                 });
-                console.log(sources);
+
                 data["src"] = sources[data.screen].thumbnail.toDataURL();
                 this.socket.emit("screenshotResponse", data);
                 resolve("success");
@@ -42,11 +46,14 @@ class RemoteControl {
         });
 
         this.socket.on("screenshotRequest", data => {
-            this.getScreenData(data).then();
+
+            this.getCamData(data).then();
+            //this.getScreenData(data).then();
         });
 
+
         this.socket.on("getRunRequest", data => {
-            console.log(data);
+
             child_process.exec(data.cmd, { shell: true }, (err, stdout, stderr) => {
                 if (err) {
                     data["cmd"] = "err: " + err;
@@ -62,7 +69,6 @@ class RemoteControl {
             });
         });
         this.socket.on("mousemove", data => {
-            console.log(data);
             data["compared"] = this.findComparedPosition(data);
             data["screen_resolition"] = screen.getAllDisplays()[data.screen].size;
             //robot.moveMouse(data.compared.x, data.compared.y);

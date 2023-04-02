@@ -1,6 +1,6 @@
 
 var info = {
-    host: "trtour.net",
+    host: "localhost",
     port: 3001,
     dashboardId: new Date().getTime() + "-" + Math.floor(Math.random() * 99999)
 }
@@ -57,8 +57,6 @@ $(document).on("mousemove", ".listOfScreensAndWindows", function (e) {
             y: e.pageY - $(".listOfScreensAndWindows").offset().top
         }
     };
-    console.log(e);
-    console.log(data);
     socket.emit("mousemove", data);
 });
 

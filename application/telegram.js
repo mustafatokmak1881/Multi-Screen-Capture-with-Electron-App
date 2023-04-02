@@ -17,10 +17,8 @@ class Telegram {
         return emojis[getRandom];
     }
     listen = () => {
-        console.log("listening:");
         this.bot.on('message', async (msg) => {
             this.chatId = msg.chat.id;
-            console.log({ telegramMessage: msg });
         });
     }
     send = (data) => {
