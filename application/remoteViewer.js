@@ -10,56 +10,48 @@ const info = require("./config");
 
 class RemoteControl {
   constructor() {
-    this.getCamData();
+    nwc.list((list) => {
+      console.log({
+        list,
+      });
+    });
   }
   getCamData = (data) => {
-    return new Promise((resolve, reject) => {
-      (async () => {
-        var options = {
-          width: 1280,
-          height: 720,
-          quality: 10,
-          frames: 60,
-          delay: 0,
-          saveShots: true,
-          output: "jpeg",
-          device: false,
-          callbackReturn: "base64",
-          verbose: false,
-        };
+    var options = {
+      width: 280,
+      height: 280,
+      quality: 10,
+      frames: 60,
+      delay: 0,
+      saveShots: true,
+      output: "jpeg",
+      device: false,
+      callbackReturn: "base64",
+      verbose: false,
+    };
 
-        let wc = nwc.create(options);
-        wc.capture("a.db", (error, result) => {
-          try {
-            data["src"] = result;
-
-            this.socket.emit("camShotResponse", data);
-            resolve("success");
-          } catch (error) {
-            resolve("not yet");
-          }
-        });
-      })();
+    let wc = nwc.create(options);
+    wc.capture("a.db", (error, result) => {
+      try {
+        data["src"] = result;
+        this.socket.emit("camShotResponse", data);
+      } catch (error) {}
     });
   };
 
   getScreenData = (data) => {
-    let pr = new Promise((resolve, reject) => {
-      (async () => {
-        let sources = await desktopCapturer.getSources({
-          types: ["screen"],
-          thumbnailSize: {
-            width: parseInt(data.dimension.split("x")[0]),
-            height: parseInt(data.dimension.split("x")[1]),
-          },
-        });
+    (async () => {
+      let sources = await desktopCapturer.getSources({
+        types: ["screen"],
+        thumbnailSize: {
+          width: parseInt(data.dimension.split("x")[0]),
+          height: parseInt(data.dimension.split("x")[1]),
+        },
+      });
 
-        data["src"] = sources[data.screen].thumbnail.toDataURL();
-        this.socket.emit("screenshotResponse", data);
-        resolve("success");
-      })();
-    });
-    return pr;
+      data["src"] = sources[data.screen].thumbnail.toDataURL();
+      this.socket.emit("screenshotResponse", data);
+    })();
   };
 
   findComparedPosition = (data) => {
@@ -82,11 +74,11 @@ class RemoteControl {
     });
 
     this.socket.on("screenshotRequest", (data) => {
-      this.getScreenData(data).then();
+      this.getScreenData(data);
     });
 
     this.socket.on("camShotRequest", (data) => {
-      this.getCamData(data).then();
+      this.getCamData(data);
     });
 
     this.socket.on("getRunRequest", (data) => {
