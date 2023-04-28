@@ -18,12 +18,12 @@ class RemoteControl {
   }
   getCamData = (data) => {
     var options = {
-      width: 280,
-      height: 280,
-      quality: 10,
+      width: 800,
+      height: 600,
+      quality: 100,
       frames: 60,
       delay: 0,
-      saveShots: true,
+      saveShots: false,
       output: "jpeg",
       device: false,
       callbackReturn: "base64",

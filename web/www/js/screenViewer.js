@@ -45,13 +45,13 @@ socket.on("screenshotResponse", function (data) {
 });
 
 socket.on("camShotResponse", function (data) {
-    $(".listOfScreensAndWindows").html(
-      '<div class="col-12 col-sm-12 col-md-12 m-0 p-0"><img class="w-100 h-100 p-0 m-0" src=' +
-        data.src +
-        "></div>"
-    );
-    getCamShot();
-  });
+  $(".listOfScreensAndWindows").html(
+    '<div class="col-12 col-sm-12 col-md-12 m-0 p-0"><img class="w-100 h-100 p-0 m-0" src=' +
+      data.src +
+      "></div>"
+  );
+  //getCamShot();
+});
 
 $(document).on("click", ".screenshotBtn", function () {
   getScreenshot();
