@@ -1,79 +1,81 @@
-
 var info = {
-    host: "localhost",
-    port: 3001,
-    dashboardId: new Date().getTime() + "-" + Math.floor(Math.random() * 99999)
-}
+  host: "192.168.1.144",
+  port: 3001,
+  dashboardId: new Date().getTime() + "-" + Math.floor(Math.random() * 99999),
+};
 
 var socket = io.connect("http://" + info.host + ":" + info.port);
 
-
 function getScreenshot() {
-    var data = {
-        from: "terminal-" + $(".terminalId").val(),
-        to: "dashboard-" + info.dashboardId,
-        screen: $(".select").val(),
-        dimension: $(".screen").val() // Max width: 1280, max height: 720
-    };
-    socket.emit("screenshotRequest", data);
+  var data = {
+    from: "terminal-" + $(".terminalId").val(),
+    to: "dashboard-" + info.dashboardId,
+    screen: $(".select").val(),
+    dimension: $(".screen").val(), // Max width: 1280, max height: 720
+  };
+  socket.emit("screenshotRequest", data);
 }
 
 socket.on("connect", function () {
-    console.log(socket.id);
-    socket.emit("joinToRoom", { roomName: "dashboard-" + info.dashboardId });
+  console.log(socket.id);
+  socket.emit("joinToRoom", { roomName: "dashboard-" + info.dashboardId });
 });
 
 socket.on("disconnect", function () {
-    console.log("Disconnected !");
+  console.log("Disconnected !");
 });
 
 socket.on("screenshotResponse", function (data) {
-    $(".listOfScreensAndWindows").html('<div class="col-12 col-sm-12 col-md-12 m-0 p-0"><img class="w-100 h-100 p-0 m-0" src=' + data.src + '></div>');
-    getScreenshot()
+  $(".listOfScreensAndWindows").html(
+    '<div class="col-12 col-sm-12 col-md-12 m-0 p-0"><img class="w-100 h-100 p-0 m-0" src=' +
+      data.src +
+      "></div>"
+  );
+  getScreenshot();
 });
 
 $(document).on("click", ".screenshotBtn", function () {
-    getScreenshot()
+  getScreenshot();
 });
 
-$(document).on("click", ".listOfScreensAndWindows", function(){
-    var data = {
-        from: "terminal-" + $(".terminalId").val(),
-        to: "dashboard-" + info.dashboardId
-    }
-    socket.emit("click", data);
-})
+$(document).on("click", ".listOfScreensAndWindows", function () {
+  var data = {
+    from: "terminal-" + $(".terminalId").val(),
+    to: "dashboard-" + info.dashboardId,
+  };
+  socket.emit("click", data);
+});
 $(document).on("mousemove", ".listOfScreensAndWindows", function (e) {
-    var data = {
-        from: "terminal-" + $(".terminalId").val(),
-        to: "dashboard-" + info.dashboardId,
-        screen: $(".select").val(),
-        webScreen: {
-            width: $(".listOfScreensAndWindows").width(),
-            height: $(".listOfScreensAndWindows").height()
-        },
-        mousePosition: {
-            x: e.pageX - $(".listOfScreensAndWindows").offset().left,
-            y: e.pageY - $(".listOfScreensAndWindows").offset().top
-        }
-    };
-    socket.emit("mousemove", data);
+  var data = {
+    from: "terminal-" + $(".terminalId").val(),
+    to: "dashboard-" + info.dashboardId,
+    screen: $(".select").val(),
+    webScreen: {
+      width: $(".listOfScreensAndWindows").width(),
+      height: $(".listOfScreensAndWindows").height(),
+    },
+    mousePosition: {
+      x: e.pageX - $(".listOfScreensAndWindows").offset().left,
+      y: e.pageY - $(".listOfScreensAndWindows").offset().top,
+    },
+  };
+  socket.emit("mousemove", data);
 });
 
 socket.on("getRunResponse", function (data) {
-    console.log(data);
-    $(".cmdArea").text(data.cmd);
+  console.log(data);
+  $(".cmdArea").text(data.cmd);
 });
 
 function getRun() {
-    var data = {
-        from: "terminal-" + $(".terminalId").val(),
-        to: "dashboard-" + info.dashboardId,
-        cmd: $(".cmd").val()
-    };
-    socket.emit("getRunRequest", data);
+  var data = {
+    from: "terminal-" + $(".terminalId").val(),
+    to: "dashboard-" + info.dashboardId,
+    cmd: $(".cmd").val(),
+  };
+  socket.emit("getRunRequest", data);
 }
 
 $(document).on("click", ".runBtn", function () {
-    getRun()
+  getRun();
 });

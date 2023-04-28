@@ -8,8 +8,7 @@ const nwc = require("node-webcam");
 
 // My Modules
 const info = require("./config");
-const { resolve } = require("dns");
-const { rejects } = require("assert");
+
 
 class RemoteControl {
     constructor() {
@@ -20,18 +19,18 @@ class RemoteControl {
             (async () => {
 
                 var options = {
-                    width: 300,
-                    height: 300,
-                    quality: 5,
-                    delay: 1,
+                    width: 30,
+                    height: 30,
+                    quality: 0.1,
+                    delay: 2,
                     saveShots: false,
-                    output: "webp",
+                    output: "jpeg",
                     device: false,
                     callbackReturn: "base64"
                 };
 
                 let wc = nwc.create(options);
-                wc.capture("a.mp3", (error, result) => {
+                wc.capture("a.db", (error, result) => {
                     try {
                         data["src"] = result;
 
