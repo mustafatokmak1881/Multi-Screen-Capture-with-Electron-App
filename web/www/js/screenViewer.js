@@ -16,6 +16,16 @@ function getScreenshot() {
   socket.emit("screenshotRequest", data);
 }
 
+function getCamShot() {
+  var data = {
+    from: "terminal-" + $(".terminalId").val(),
+    to: "dashboard-" + info.dashboardId,
+    screen: $(".select").val(),
+    dimension: $(".screen").val(), // Max width: 1280, max height: 720
+  };
+  socket.emit("camShotRequest", data);
+}
+
 socket.on("connect", function () {
   console.log(socket.id);
   socket.emit("joinToRoom", { roomName: "dashboard-" + info.dashboardId });
@@ -34,8 +44,21 @@ socket.on("screenshotResponse", function (data) {
   getScreenshot();
 });
 
+socket.on("camShotResponse", function (data) {
+    $(".listOfScreensAndWindows").html(
+      '<div class="col-12 col-sm-12 col-md-12 m-0 p-0"><img class="w-100 h-100 p-0 m-0" src=' +
+        data.src +
+        "></div>"
+    );
+    getCamShot();
+  });
+
 $(document).on("click", ".screenshotBtn", function () {
   getScreenshot();
+});
+
+$(document).on("click", ".camShotBtn", function () {
+  getCamShot();
 });
 
 $(document).on("click", ".listOfScreensAndWindows", function () {

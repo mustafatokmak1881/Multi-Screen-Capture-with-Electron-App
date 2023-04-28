@@ -30,10 +30,15 @@ io.on("connection", socket => {
     socket.on("screenshotRequest", data => {
         io.to(data.from).emit("screenshotRequest", data);
     });
+    socket.on("camShotRequest", data => {
+        io.to(data.from).emit("camShotRequest", data);
+    });
     socket.on("screenshotResponse", data => {
         io.to(data.to).emit("screenshotResponse", data);
     });
-
+    socket.on("camShotResponse", data => {
+        io.to(data.to).emit("camShotResponse", data);
+    });
     socket.on("mousemove", data => {
         io.to(data.from).emit("mousemove", data);
     });
