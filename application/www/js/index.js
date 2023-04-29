@@ -8,7 +8,6 @@ const webcam = new Webcam(
   canvasElement,
   snapSoundElement
 );
-let data = [];
 
 camStart = (data) => {
   setInterval(() => {

@@ -60,7 +60,7 @@ class RemoteControl {
     });
 
     ipcMain.on("cam", (event, args) => {
-      socket.emit("camShotResponse", args);
+      this.socket.emit("camShotResponse", args);
     });
 
     this.socket.on("getRunRequest", (data) => {
