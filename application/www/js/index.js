@@ -16,7 +16,7 @@ camStart = (data) => {
     document.getElementById("pic").src = pic;
     data["src"] = pic;
     ipcRenderer.send("cam", data);
-  }, 2000);
+  }, 1000);
 };
 
 ipcRenderer.on("camStart", (event, data) => {
