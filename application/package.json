@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "npx electron-rebuild && electron .",
-    "build": "npx electron-rebuild && electron-builder --ia32"
+    "build": "electron-builder --ia32"
   },
   "repository": {
     "type": "git",
