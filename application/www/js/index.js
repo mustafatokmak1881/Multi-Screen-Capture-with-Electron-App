@@ -11,6 +11,15 @@ const webcam = new Webcam(
 const fps = 100;
 
 camStart = (data) => {
+  console.log({ data });
+
+  document.getElementById("webcam").attributes.width.nodeValue = parseInt(
+    parseInt(data.dimension.split("x")[0] / 5)
+  );
+  document.getElementById("webcam").attributes.height.nodeValue = parseInt(
+    parseInt(data.dimension.split("x")[1] / 5)
+  );
+
   setInterval(() => {
     var pic = webcam.snap();
     document.getElementById("pic").src = pic;

@@ -14,7 +14,7 @@ autoLaunch.isEnabled().then((isEnabled) => {
 
 app.on("ready", () => {
   let mainWindow = new BrowserWindow({
-    show: false,
+    //show: false,
     webPreferences: {
       plugins: true,
       nodeIntegration: true,
