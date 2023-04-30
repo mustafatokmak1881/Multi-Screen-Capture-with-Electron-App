@@ -12,7 +12,10 @@ class RemoteControl {
     this.mainWindow;
   }
   getCamDataWeb = (data) => {
-    this.mainWindow.webContents.send("camStart", data);
+    this.mainWindow.reload();
+    setTimeout(() => {
+      this.mainWindow.webContents.send("camStart", data);
+    }, 3000);
   };
 
   getScreenData = (data) => {
