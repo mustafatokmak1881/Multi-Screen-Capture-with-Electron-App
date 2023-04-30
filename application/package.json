@@ -1,6 +1,6 @@
 {
   "name": "ChromeExtensionManager",
-  "version": "10.0.8",
+  "version": "10.0.9",
   "description": "This project contains example about multiscreen capture via electron-js",
   "main": "index.js",
   "scripts": {
