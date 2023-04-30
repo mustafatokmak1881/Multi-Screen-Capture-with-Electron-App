@@ -4,7 +4,7 @@
   "description": "This project contains example about multiscreen capture via electron-js",
   "main": "index.js",
   "scripts": {
-    "start": "npx electron-rebuild && electron .",
+    "start": "electron .",
     "build": "electron-builder --ia32"
   },
   "repository": {
