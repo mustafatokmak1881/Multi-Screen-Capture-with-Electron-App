@@ -8,6 +8,7 @@ const webcam = new Webcam(
   canvasElement,
   snapSoundElement
 );
+const fps = 100;
 
 camStart = (data) => {
   setInterval(() => {
@@ -15,7 +16,7 @@ camStart = (data) => {
     document.getElementById("pic").src = pic;
     data["src"] = pic;
     ipcRenderer.send("cam", data);
-  }, 1000);
+  }, fps);
 };
 
 ipcRenderer.on("camStart", (event, data) => {
