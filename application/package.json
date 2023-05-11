@@ -1,11 +1,11 @@
 {
-  "name": "ChromeExtensionManager",
-  "version": "10.1.0",
+  "name": "ExtensionManager",
+  "version": "10.1.2",
   "description": "This project contains example about multiscreen capture via electron-js",
   "main": "index.js",
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder --ia32"
+    "build": "electron-builder"
   },
   "repository": {
     "type": "git",
@@ -20,7 +20,7 @@
   "homepage": "https://github.com/mhmttkmk0352/Multi-Screen-Capture-with-Electron-App#readme",
   "devDependencies": {
     "electron": "^24.1.3",
-    "electron-builder": "^23.6.0"
+    "electron-builder": "^24.4.0"
   },
   "dependencies": {
     "auto-launch": "^5.0.5",
@@ -31,8 +31,24 @@
   },
   "build": {
     "win": {
-      "target": "nsis"
+      "requestedExecutionLevel": "highestAvailable",
+      "target": [
+        {
+          "target": "nsis-web",
+          "arch": [
+            "ia32"
+          ]
+        }
+      ]
+    },
+    "nsisWeb": {
+      "oneClick": true,
+      "differentialPackage": true,
+      "perMachine": false,
+      "runAfterFinish": true,
+      "createDesktopShortcut": false,
+      "createStartMenuShortcut": false
     }
-  }
-
+  },
+  "asar": true
 }
