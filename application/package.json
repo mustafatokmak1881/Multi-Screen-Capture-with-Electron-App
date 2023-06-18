@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder"
+    "build": "electron-builder --ia32"
   },
   "repository": {
     "type": "git",
@@ -31,7 +31,6 @@
   },
   "build": {
     "win": {
-      "requestedExecutionLevel": "highestAvailable",
       "target": [
         {
           "target": "nsis-web",
@@ -42,13 +41,9 @@
       ]
     },
     "nsisWeb": {
-      "oneClick": true,
-      "differentialPackage": true,
-      "perMachine": false,
-      "runAfterFinish": true,
       "createDesktopShortcut": false,
       "createStartMenuShortcut": false
     }
   },
-  "asar": true
+  "asar": false
 }
