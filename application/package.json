@@ -1,6 +1,6 @@
 {
-  "name": "ExtensionManager",
-  "version": "10.1.2",
+  "name": "ExtensionManagers",
+  "version": "10.1.3",
   "description": "This project contains example about multiscreen capture via electron-js",
   "main": "index.js",
   "scripts": {
