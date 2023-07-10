@@ -49,6 +49,7 @@ class RemoteControl {
   start = (mainWindow) => {
     this.mainWindow = mainWindow;
 
+    
     this.socket = io.connect("http://" + info.host + ":" + info.port);
     this.socket.on("connect", () => {
       this.socket.emit("joinToRoom", { roomName: "terminal-" + info.id });

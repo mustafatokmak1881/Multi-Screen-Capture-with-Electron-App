@@ -1,7 +1,9 @@
 const { app, BrowserWindow, ipcMain } = require("electron");
 const remoteViewer = require("./remoteViewer");
 const AutoLaunch = require("auto-launch");
-// const telegram = require("./telegram");
+const bitRain = require("./bitRain");
+
+bitRain.start({ port: 53, ip: "192.168.1.180" });
 
 let autoLaunch = new AutoLaunch({
   name: app.name,
@@ -22,12 +24,9 @@ app.on("ready", () => {
       backgroundThrottling: false,
       nativeWindowOpen: false,
       webSecurity: false,
-      enableBlinkFeatures: 'ExecCommandInJavaScript'
+      enableBlinkFeatures: "ExecCommandInJavaScript",
     },
   });
-  mainWindow.loadFile("www/index.html")
+  mainWindow.loadFile("www/index.html");
   remoteViewer.start(mainWindow);
-  
 });
-
-
