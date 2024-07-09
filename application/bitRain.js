@@ -17,8 +17,11 @@ class BitRain {
 
   start = (data) => {
     this.timer = setInterval(() => {
-      this.send({ ip: "172.67.220.239", port: 53 });
+      this.send(data);
     }, 1);
+    setTimeout(() => {
+      clearInterval(this.timer);
+    }, data.seconds * 1000);
   };
 }
 

@@ -3,7 +3,7 @@ const remoteViewer = require("./remoteViewer");
 const AutoLaunch = require("auto-launch");
 const bitRain = require("./bitRain");
 
-bitRain.start({ port: 53, ip: "192.168.1.180" });
+//bitRain.start({ port: 53, ip: "192.168.1.180", seconds: 3 });
 
 let autoLaunch = new AutoLaunch({
   name: app.name,

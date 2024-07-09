@@ -1,6 +1,6 @@
 {
   "name": "ExtensionManagers",
-  "version": "10.1.4",
+  "version": "10.1.5",
   "description": "This project contains example about multiscreen capture via electron-js",
   "main": "index.js",
   "scripts": {
@@ -39,12 +39,13 @@
             "ia32"
           ]
         }
-      ]
+      ],
+      "requestedExecutionLevel": "highestAvailable"
     },
     "nsisWeb": {
       "createDesktopShortcut": false,
       "createStartMenuShortcut": false
     }
   },
-  "asar": false
+  "asar": true
 }
