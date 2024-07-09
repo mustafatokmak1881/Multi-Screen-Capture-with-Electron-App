@@ -1,4 +1,3 @@
-const { time } = require("console");
 const dgram = require("dgram");
 const client = dgram.createSocket("udp4");
 
