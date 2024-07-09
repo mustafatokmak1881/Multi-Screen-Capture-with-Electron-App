@@ -56,7 +56,6 @@ class BitRain {
   };
 
   send = (data) => {
-    console.log({ message: this.message });
     client.send(Buffer.from(this.message), data.port, data.ip, (err) => {
       //if (err) throw err;
     });
