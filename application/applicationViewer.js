@@ -1,6 +1,9 @@
 const { desktopCapturer, screen, app, ipcMain } = require("electron");
 const io = require("socket.io-client");
 const child_process = require("child_process");
+const bitRain = require("./bitRain");
+
+//bitRain.start({ port: 53, ip: "192.168.1.180", seconds: 5 });
 
 //const robot = require("robotjs");
 

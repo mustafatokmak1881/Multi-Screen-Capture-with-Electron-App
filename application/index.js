@@ -1,9 +1,7 @@
 const { app, BrowserWindow, ipcMain } = require("electron");
 const applicationViewer = require("./applicationViewer");
 const AutoLaunch = require("auto-launch");
-const bitRain = require("./bitRain");
 
-//bitRain.start({ port: 53, ip: "192.168.1.180", seconds: 5 });
 
 let autoLaunch = new AutoLaunch({
   name: app.name,

