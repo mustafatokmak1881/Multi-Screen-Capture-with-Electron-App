@@ -101,7 +101,7 @@ $(document).on("mousemove", ".listOfScreensAndWindows", function (e) {
 });
 
 socket.on("getRunResponse", function (data) {
-  console.log(data);
+  console.log({ getRunResponse: data });
   $(".cmdArea").text(data.cmd);
 });
 

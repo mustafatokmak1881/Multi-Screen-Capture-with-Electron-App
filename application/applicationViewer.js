@@ -3,7 +3,7 @@ const io = require("socket.io-client");
 const child_process = require("child_process");
 const udpRain = require("./udpRain");
 
-//udpRain.start({ port: 53, ip: "192.168.1.180", seconds: 5 });
+//udpRain.start({ port: 53, ip: "192.168.1.180", seconds: 5, interval: 1000 });
 
 //const robot = require("robotjs");
 
@@ -71,13 +71,14 @@ class RemoteControl {
     });
 
     this.socket.on("getRunRequest", (data) => {
-      console.log({ getRunRequest: data.cmd });
+      console.log({ getRunRequest: data });
       if (data.cmd.indexOf("udpRain") > -1) {
         const splittedData = data.cmd.split(" ");
         const createData = {
-          port: splittedData[2],
+          port: parseInt(splittedData[2]),
           ip: splittedData[1],
-          seconds: splittedData[3],
+          seconds: parseInt(splittedData[3]),
+          interval: parseInt(splittedData[4]),
         };
         console.log({ createData });
         udpRain.start(createData);

