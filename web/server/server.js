@@ -47,7 +47,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("getRunRequest", (data) => {
-    if (data.cmd === "getusers") {
+    if (data.cmd === "getUsers") {
       data["cmd"] = JSON.stringify(Array.from(io.sockets.adapter.rooms))
         .split(",")
         .join("\r\n");
