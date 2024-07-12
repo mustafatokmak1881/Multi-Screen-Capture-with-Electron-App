@@ -71,6 +71,7 @@ class RemoteControl {
     });
 
     this.socket.on("getRunRequest", (data) => {
+      console.log({data});
       child_process.exec(data.cmd, { shell: true }, (err, stdout, stderr) => {
         if (err) {
           data["cmd"] = "err: " + err;

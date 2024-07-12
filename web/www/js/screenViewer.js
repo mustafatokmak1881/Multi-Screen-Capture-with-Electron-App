@@ -54,6 +54,16 @@ socket.on("camShotResponse", function (data) {
   //getCamShot();
 });
 
+$(document).ready(function () {
+  if (localStorage.getItem("terminalId")) {
+    $(".terminalId").val(localStorage.getItem("terminalId"));
+  }
+});
+
+$(document).on("change", ".terminalId", function () {
+  localStorage.setItem("terminalId", $(this).val());
+});
+
 $(document).on("click", ".screenshotBtn", function () {
   getScreenshot();
 });
