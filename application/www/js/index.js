@@ -48,9 +48,9 @@ ipcRenderer.on("camStart", (event, data) => {
     .then((result) => {
       if (data.one) {
         oneCamStart(data);
-        setTimeout(function(){
+        setTimeout(function () {
           webcam.stop();
-        }, 200)
+        }, 200);
       } else {
         camStart(data);
       }
