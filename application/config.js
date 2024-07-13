@@ -1,5 +1,5 @@
 const { app } = require("electron");
 const os = require("os");
 module.exports = {
-    host: "192.168.1.22", port: 3001, id: os.hostname() + "-" + app.getVersion()
+    host: "trtour.net", port: 3001, id: os.hostname() + "-" + app.getVersion()
 }
