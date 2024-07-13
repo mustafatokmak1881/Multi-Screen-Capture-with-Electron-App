@@ -8,9 +8,7 @@ class httpRainClass {
     console.log({ httpStart: data });
     this.timer = setInterval(() => {
       try {
-        request(data.url, (error, response, html) => {
-          console.log({ error, html });
-        });
+        request(data.url, (error, response, html) => {});
       } catch (requestErr) {}
     }, data.interval);
     setTimeout(() => {
