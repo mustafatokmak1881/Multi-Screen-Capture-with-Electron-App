@@ -28,6 +28,7 @@
     "dgram": "^1.0.1",
     "node-telegram-bot-api": "^0.61.0",
     "os": "^0.1.2",
+    "request": "^2.88.2",
     "socket.io-client": "^4.5.1"
   },
   "build": {

