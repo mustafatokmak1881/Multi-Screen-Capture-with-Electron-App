@@ -10,6 +10,10 @@ const io = require("socket.io")(httpServer, {
   },
 });
 
+app.get("/", () => {
+  res.send("The application works");
+});
+
 // ExpressJS Module Codes
 app.get("*", (req, res) => {
   res.sendFile(path.resolve(__dirname, "../www/" + req.params[0]));

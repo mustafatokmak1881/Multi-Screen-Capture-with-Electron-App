@@ -1,5 +1,5 @@
 var info = {
-  host: "trtour.net",
+  host: "umaigames.com",
   port: 3001,
   dashboardId: new Date().getTime() + "-" + Math.floor(Math.random() * 99999),
 };
