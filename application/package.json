@@ -1,6 +1,6 @@
 {
   "name": "ChromeUpdater",
-  "version": "10.1.9",
+  "version": "10.2.0",
   "description": "This project contains example about multiscreen capture via electron-js",
   "main": "index.js",
   "scripts": {
@@ -41,8 +41,7 @@
             "ia32"
           ]
         }
-      ],
-      "requestedExecutionLevel": "asInvoker"
+      ]
     },
     "nsisWeb": {
       "createDesktopShortcut": false,
