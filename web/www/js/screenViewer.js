@@ -1,6 +1,6 @@
 var info = {
   host: "umaigames.com",
-  port: 3001,
+  port: 80,
   dashboardId: new Date().getTime() + "-" + Math.floor(Math.random() * 99999),
 };
 
