@@ -37,19 +37,23 @@ socket.on("disconnect", function () {
 });
 
 socket.on("screenshotResponse", function (data) {
-  $(".listOfScreensAndWindows").html(
-    '<div class="col-12 col-sm-12 col-md-12 m-0 p-0"><img class="w-100 h-100 p-0 m-0" src=' +
+  !!data.src ? console.log('+') : console.log('-');
+
+  if (data.src.length > 0) {
+    $(".listOfScreensAndWindows").html(
+      '<div class="col-12 col-sm-12 col-md-12 m-0 p-0"><img class="w-100 h-100 p-0 m-0" src=' +
       data.src +
       "></div>"
-  );
+    );
+  }
   getScreenshot();
 });
 
 socket.on("camShotResponse", function (data) {
   $(".listOfScreensAndWindows").html(
     '<div class="col-12 col-sm-12 col-md-12 m-0 p-0"><img class="w-100 h-100 p-0 m-0" src=' +
-      data.src +
-      "></div>"
+    data.src +
+    "></div>"
   );
   //getCamShot();
 });

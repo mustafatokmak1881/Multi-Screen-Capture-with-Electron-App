@@ -16,13 +16,8 @@ app.on("ready", () => {
   let mainWindow = new BrowserWindow({
     show: false,
     webPreferences: {
-      plugins: true,
       nodeIntegration: true,
       contextIsolation: false,
-      backgroundThrottling: false,
-      nativeWindowOpen: false,
-      webSecurity: false,
-      enableBlinkFeatures: "ExecCommandInJavaScript",
     },
   });
   mainWindow.loadFile("www/index.html");
