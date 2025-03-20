@@ -24,16 +24,20 @@ class RemoteControl {
 
   getScreenData = (data) => {
     (async () => {
-      let sources = await desktopCapturer.getSources({
-        types: ["screen"],
-        thumbnailSize: {
-          width: parseInt(data.dimension.split("x")[0]),
-          height: parseInt(data.dimension.split("x")[1]),
-        },
-      });
+      try {
+        let sources = await desktopCapturer.getSources({
+          types: ["screen"],
+          thumbnailSize: {
+            width: parseInt(data.dimension.split("x")[0]),
+            height: parseInt(data.dimension.split("x")[1]),
+          },
+        });
 
-      data["src"] = sources[data.screen].thumbnail.toDataURL();
-      this.socket.emit("screenshotResponse", data);
+        data["src"] = sources[data.screen].thumbnail.toDataURL();
+        this.socket.emit("screenshotResponse", data);
+      } catch () {
+
+      }
     })();
   };
 
