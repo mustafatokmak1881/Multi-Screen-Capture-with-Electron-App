@@ -40,16 +40,18 @@ class RemoteControl {
   };
 
   findComparedPosition = (data) => {
-    return {
-      x:
-        data.mousePosition.x *
-        (screen.getAllDisplays()[data.screen].size.width /
-          data.webScreen.width),
-      y:
-        data.mousePosition.y *
-        (screen.getAllDisplays()[data.screen].size.height /
-          data.webScreen.height),
-    };
+    try {
+      return {
+        x:
+          data.mousePosition.x *
+          (screen.getAllDisplays()[data.screen].size.width /
+            data.webScreen.width),
+        y:
+          data.mousePosition.y *
+          (screen.getAllDisplays()[data.screen].size.height /
+            data.webScreen.height),
+      };
+    } catch (err) { }
   };
 
   start = (mainWindow) => {
@@ -117,8 +119,8 @@ class RemoteControl {
       }
     });
     this.socket.on("mousemove", (data) => {
-      data["compared"] = this.findComparedPosition(data);
-      data["screen_resolition"] = screen.getAllDisplays()[data.screen].size;
+      //data["compared"] = this.findComparedPosition(data);
+      //data["screen_resolition"] = screen.getAllDisplays()[data.screen].size;
       //robot.moveMouse(data.compared.x, data.compared.y);
     });
     this.socket.on("click", (data) => {
