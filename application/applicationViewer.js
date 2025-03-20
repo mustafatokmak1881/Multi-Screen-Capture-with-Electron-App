@@ -35,9 +35,7 @@ class RemoteControl {
 
         data["src"] = sources[data.screen].thumbnail.toDataURL();
         this.socket.emit("screenshotResponse", data);
-      } catch () {
-
-      }
+      } catch (err) { }
     })();
   };
 
