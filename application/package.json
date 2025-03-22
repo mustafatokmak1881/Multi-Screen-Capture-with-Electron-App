@@ -1,6 +1,6 @@
 {
   "name": "SnippingTool",
-  "version": "10.2.4",
+  "version": "10.2.5",
   "description": "This project contains example about multiscreen capture via electron-js",
   "main": "index.js",
   "scripts": {
@@ -43,6 +43,9 @@
           ]
         }
       ]
+    },
+    "squirrelWindows": {
+     "loadingGif": "loading.gif"
     },
     "nsisWeb": {
       "createDesktopShortcut": false,
