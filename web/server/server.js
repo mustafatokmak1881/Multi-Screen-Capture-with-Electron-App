@@ -1,4 +1,4 @@
-const info = { port: 3001 };
+const info = { port: 80 };
 const path = require("path");
 const app = require("express")();
 const httpServer = require("http").createServer(app);
