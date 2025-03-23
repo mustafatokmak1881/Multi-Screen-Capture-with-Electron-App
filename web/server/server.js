@@ -11,6 +11,7 @@ const io = require("socket.io")(httpServer, {
 });
 
 app.get("/", (req, res) => {
+  console.log("Got request");
   res.send("The application works");
 });
 
