@@ -10,7 +10,7 @@ const io = require("socket.io")(httpServer, {
   },
 });
 
-app.get("/", (req, res) => {
+app.get("/test", (req, res) => {
   console.log("Got request");
   res.send("The application works");
 });
