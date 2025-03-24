@@ -38,11 +38,11 @@ getMe = (id) => {
     });
 }
 
-let counter = 25316;
+let counter = 17639;
 (async () => {
     setInterval(async () => {
         const result = await getMe(counter);
         console.log({ result, counter });
         counter--;
-    }, 3000);
+    }, 1000);
 })()
