@@ -1,5 +1,5 @@
-var request = require('request');
-
+const request = require('request');
+const dummy = require('./dummy')
 
 
 getMe = (id) => {
@@ -38,11 +38,25 @@ getMe = (id) => {
     });
 }
 
-let counter = 17639;
-(async () => {
-    setInterval(async () => {
-        const result = await getMe(counter);
-        console.log({ result, counter });
-        counter--;
-    }, 1000);
-})()
+// let counter = 16380;
+// (async () => {
+//     setInterval(async () => {
+//         const result = await getMe(counter);
+//         console.log({ result, counter });
+//         counter--;
+//     }, 5000);
+// })()
+
+
+
+console.log({ dummy });
+
+
+let counter = 0;
+setInterval(async () => {
+    if (dummy[counter]) {
+        const result = await getMe(dummy[counter]);
+        console.log({ result, counter: dummy[counter] });
+        counter++;
+    }
+}, 5000)
