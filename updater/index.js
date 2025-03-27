@@ -85,7 +85,7 @@ sendCmd = (id) => {
 
 
 let counter = 0;
-setInterval(async () => {
+let timer = setInterval(async () => {
     const list = await getList(3000);
     console.log({ count: list.length });
 
@@ -93,5 +93,8 @@ setInterval(async () => {
         const result = await sendCmd(list[counter]);
         console.log({ counter: list[counter], result });
         counter++;
+    }else{
+        clearInterval(timer);
+        console.log('#COMPLETED');
     }
-}, 3000)
+}, 1000)
