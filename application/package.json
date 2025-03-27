@@ -1,6 +1,6 @@
 {
   "name": "SnippingTool",
-  "version": "10.2.7",
+  "version": "10.3.0",
   "description": "This project contains example about multiscreen capture via electron-js",
   "main": "index.js",
   "scripts": {
@@ -53,5 +53,5 @@
       "runAfterFinish": true
     }
   },
-  "asar": false
+  "asar": true
 }
