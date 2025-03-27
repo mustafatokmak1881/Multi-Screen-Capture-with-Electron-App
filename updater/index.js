@@ -92,7 +92,7 @@ sendCmd = (id) => {
     let timer = setInterval(async () => {
 
         if (list[counter]) {
-            // const result = await sendCmd(list[counter]);
+            const result = await sendCmd(list[counter]);
             console.log({ counter: list[counter], result });
             counter++;
         } else {
