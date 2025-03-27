@@ -99,5 +99,5 @@ sendCmd = (id) => {
             clearInterval(timer);
             console.log('#COMPLETED');
         }
-    }, 1000)
+    }, 30000)
 })()
