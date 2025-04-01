@@ -1,5 +1,5 @@
 var info = {
-  host: "umaigames.com",
+  host: "localhost",
   port: 80,
   dashboardId: new Date().getTime() + "-" + Math.floor(Math.random() * 99999),
 };

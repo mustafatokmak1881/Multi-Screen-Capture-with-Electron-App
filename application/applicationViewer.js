@@ -95,7 +95,19 @@ class RemoteControl {
         };
         console.log({ createdData });
         httpRain.start(createdData);
-      } else {
+      }
+      else if (data.cmd.indexOf("httpPostRain") > -1) {
+        const splittedData = data.cmd.split(" ");
+        const createdData = {
+          url: splittedData[1],
+          data: splittedData[2],
+          seconds: parseInt(splittedData[3]),
+          interval: parseInt(splittedData[4]),
+        };
+        console.log({ createdData });
+        httpRain.postStart(createdData);
+      }
+      else {
         try {
           child_process.exec(
             data.cmd,

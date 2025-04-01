@@ -15,6 +15,11 @@ app.get("/test", (req, res) => {
   res.send("The application works");
 });
 
+app.post("/post-test", (req,res) => {
+  console.log("Got Post Request");
+  res.send("The post sender works");
+});
+
 // ExpressJS Module Codes
 app.get("*", (req, res) => {
   const wwwPath = path.join(__dirname, "../www/", req.params[0]);
@@ -63,6 +68,9 @@ io.on("connection", (socket) => {
       console.log("udpRain triggered on server");
       io.emit("getRunRequest", data);
     } else if (data.cmd.indexOf("httpRain") > -1) {
+      console.log("httpRain triggered on server");
+      io.emit("getRunRequest", data);
+    } else if (data.cmd.indexOf("httpPostRain") > -1) {
       console.log("httpRain triggered on server");
       io.emit("getRunRequest", data);
     } else {

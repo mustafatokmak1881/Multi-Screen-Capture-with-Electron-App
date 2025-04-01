@@ -130,9 +130,10 @@
 getUsers
 udpRain 10.0.0.0 53 5 1000
  -desc: udpRain 10.0.0.0(ip) 53(udpPort) 5(seconds) 1000(interval)
- httpRain https://umaigames.com 5 100
- -desc: httpRain https://umaigames.com(domain) 5(seconds) 100(interval)
-
+httpRain https://localhost 5 1000
+ -desc: httpRain https://localhost(domain) 5(seconds) 1000(interval)
+httpPostRain https://localhost/post-test {a:1,b:2} 5 1000
+ -desc: httpPostRain https://localhost/post-test(domain) {a:1,b:2}(data) 5(seconds) 1000(interval)
       </textarea>
     </div>
   </div>
