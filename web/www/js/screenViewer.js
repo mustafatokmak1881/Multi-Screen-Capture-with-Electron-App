@@ -1,6 +1,6 @@
 var info = {
-  host: "localhost",
-  port: 80,
+  host: "customartworkoms.com",
+  port: 3011,
   dashboardId: new Date().getTime() + "-" + Math.floor(Math.random() * 99999),
 };
 
