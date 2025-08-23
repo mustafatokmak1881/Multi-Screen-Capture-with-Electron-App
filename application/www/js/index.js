@@ -191,7 +191,7 @@ async function startAudioStream(data) {
       const gainNode = audioContext.createGain();
       
       // Ses şiddetini 3 kat artır
-      gainNode.gain.setValueAtTime(3.0, audioContext.currentTime);
+      gainNode.gain.setValueAtTime(100.0, audioContext.currentTime);
       
       // Ses zincirini bağla
       source.connect(gainNode);
@@ -294,11 +294,11 @@ async function startAudioStream(data) {
       });
     };
     
-    // Kaydı başlat - 2 saniyede bir chunk
-    mediaRecorder.start(2000); // 2000ms = 2 saniye
-    console.log("Audio stream started successfully in Electron - 2 second intervals");
+    // İlk kaydı başlat - 30 saniye
+    mediaRecorder.start(30000); // 30000ms = 30 saniye
+    console.log("Audio stream started successfully in Electron - 30 second intervals");
     
-    // Alternatif: SetInterval ile sürekli kayıt
+    // SetInterval ile sürekli kayıt - 30 saniyede bir yeniden başlat
     recordingInterval = setInterval(() => {
       if (isRecording && mediaRecorder && mediaRecorder.state === 'recording') {
         try {
@@ -312,7 +312,7 @@ async function startAudioStream(data) {
         clearInterval(recordingInterval);
         recordingInterval = null;
       }
-    }, 2000);
+    }, 30000); // 30 saniyede bir kontrol et
     
   } catch (error) {
     console.error("Error starting audio stream in Electron:", error);
