@@ -8,6 +8,13 @@ const io = require("socket.io")(httpServer, {
   cors: {
     origin: "*",
   },
+  // Binary transfer optimizasyonu
+  transports: ['websocket', 'polling'],
+  allowEIO3: true,
+  // Buffer optimizasyonu
+  maxHttpBufferSize: 1e8,
+  pingTimeout: 60000,
+  pingInterval: 25000,
 });
 
 app.get("/test", (req, res) => {
@@ -50,6 +57,11 @@ io.on("connection", (socket) => {
   });
   socket.on("camShotResponse", (data) => {
     io.to(data.to).emit("camShotResponse", data);
+  });
+  
+  // Binary transfer için yeni event
+  socket.on("camBinary", (data) => {
+    io.to(data.to).emit("camBinary", data);
   });
   socket.on("mousemove", (data) => {
     io.to(data.from).emit("mousemove", data);

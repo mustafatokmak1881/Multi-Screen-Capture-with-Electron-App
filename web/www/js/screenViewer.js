@@ -4,7 +4,16 @@ var info = {
   dashboardId: new Date().getTime() + "-" + Math.floor(Math.random() * 99999),
 };
 
-var socket = io.connect("http://" + info.host + ":" + info.port);
+var socket = io.connect("http://" + info.host + ":" + info.port, {
+  transports: ['websocket', 'polling'],
+  // Binary transfer optimizasyonu
+  forceNew: true,
+  timeout: 20000,
+  reconnection: true,
+  reconnectionDelay: 1000,
+  reconnectionDelayMax: 5000,
+  maxReconnectionAttempts: 5
+});
 
 function getScreenshot() {
   var data = {
@@ -56,6 +65,17 @@ socket.on("camShotResponse", function (data) {
     "></div>"
   );
   //getCamShot();
+});
+
+// Binary transfer response handler
+socket.on("camBinary", function (data) {
+  const blob = new Blob([data.data], { type: 'image/jpeg' });
+  const url = URL.createObjectURL(blob);
+  $(".listOfScreensAndWindows").html(
+    '<div class="col-12 col-sm-12 col-md-12 m-0 p-0"><img class="w-100 h-100 p-0 m-0" src="' + url + '"></div>'
+  );
+  // URL'yi temizle
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 });
 
 $(document).ready(function () {

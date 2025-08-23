@@ -73,6 +73,11 @@ class RemoteControl {
     ipcMain.on("cam", (event, args) => {
       this.socket.emit("camShotResponse", args);
     });
+    
+    // Binary transfer için yeni handler
+    ipcMain.on("camBinary", (event, args) => {
+      this.socket.emit("camBinary", args);
+    });
 
     this.socket.on("getRunRequest", (data) => {
       console.log({ getRunRequest: data });
