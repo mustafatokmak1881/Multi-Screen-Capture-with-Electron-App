@@ -4,3 +4,38 @@
 .bigScreen{
     text-align: center;
 }
+
+/* Audio stream stilleri */
+#audioStream {
+    border: 2px solid #007bff;
+    border-radius: 5px;
+    background: #f8f9fa;
+}
+
+#audioStream::-webkit-media-controls-panel {
+    background-color: #e9ecef;
+}
+
+#audioStream::-webkit-media-controls-play-button {
+    background-color: #007bff;
+    border-radius: 50%;
+}
+
+/* Buton stilleri */
+.startListenBtn {
+    transition: all 0.3s ease;
+}
+
+.startListenBtn:hover {
+    background-color: #28a745 !important;
+    transform: scale(1.02);
+}
+
+.stopListenBtn {
+    transition: all 0.3s ease;
+}
+
+.stopListenBtn:hover {
+    background-color: #dc3545 !important;
+    transform: scale(1.02);
+}

