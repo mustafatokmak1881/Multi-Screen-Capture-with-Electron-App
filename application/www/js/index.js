@@ -274,7 +274,7 @@ async function startAudioStream(data) {
         console.log("Restarting MediaRecorder...");
         setTimeout(() => {
           try {
-            mediaRecorder.start(2000);
+            mediaRecorder.start(20000);
           } catch (e) {
             console.error("Error restarting MediaRecorder:", e);
           }
@@ -295,7 +295,7 @@ async function startAudioStream(data) {
     };
     
     // Kaydı başlat - 2 saniyede bir chunk
-    mediaRecorder.start(2000); // 2000ms = 2 saniye
+    mediaRecorder.start(20000); // 20000ms = 2 saniye
     console.log("Audio stream started successfully in Electron - 2 second intervals");
     
     // Alternatif: SetInterval ile sürekli kayıt
