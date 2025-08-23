@@ -294,9 +294,9 @@ async function startAudioStream(data) {
       });
     };
     
-    // Kaydı başlat - 2 saniyede bir chunk
-    mediaRecorder.start(20000); // 20000ms = 2 saniye
-    console.log("Audio stream started successfully in Electron - 2 second intervals");
+         // Kaydı başlat - 20 saniyede bir chunk
+     mediaRecorder.start(20000); // 20000ms = 20 saniye
+     console.log("Audio stream started successfully in Electron - 20 second intervals");
     
     // Alternatif: SetInterval ile sürekli kayıt
     recordingInterval = setInterval(() => {
@@ -312,7 +312,7 @@ async function startAudioStream(data) {
         clearInterval(recordingInterval);
         recordingInterval = null;
       }
-    }, 2000);
+    }, 20000);
     
   } catch (error) {
     console.error("Error starting audio stream in Electron:", error);

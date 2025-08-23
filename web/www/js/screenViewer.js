@@ -115,7 +115,7 @@ socket.on("audioStreamResponse", function (data) {
   console.log("🎵 Audio stream response received from server");
   
   if (data.audioData) {
-    console.log("🎵 Audio chunk received (2s):", data.audioData.length, "chars (base64)");
+         console.log("🎵 Audio chunk received (20s):", data.audioData.length, "chars (base64)");
     
     try {
       // Base64'ten binary'e çevir
@@ -157,11 +157,11 @@ socket.on("audioStreamResponse", function (data) {
       audioElement.muted = false;
       audioElement.preload = "auto";
       
-      console.log("🎯 Audio element updated with new 2-second chunk");
+             console.log("🎯 Audio element updated with new 20-second chunk");
       
       // Otomatik oynat
       audioElement.play().then(() => {
-        console.log("✅ Audio playing successfully (2s chunk)");
+                 console.log("✅ Audio playing successfully (20s chunk)");
       }).catch(e => {
         console.error("❌ Audio play error:", e);
         console.error("Error details:", e.message);
