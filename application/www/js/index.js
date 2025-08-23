@@ -190,8 +190,8 @@ async function startAudioStream(data) {
       const source = audioContext.createMediaStreamSource(stream);
       const gainNode = audioContext.createGain();
       
-      // Ses şiddetini 3 kat artır
-      gainNode.gain.setValueAtTime(3.0, audioContext.currentTime);
+              // Ses şiddetini 10 kat artır
+        gainNode.gain.setValueAtTime(10.0, audioContext.currentTime);
       
       // Ses zincirini bağla
       source.connect(gainNode);
