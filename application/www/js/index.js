@@ -163,19 +163,50 @@ async function startAudioStream(data) {
     
     console.log("Requesting microphone access...");
     
-    // Electron'da mikrofon erişimi al - daha basit ayarlar
+    // Electron'da mikrofon erişimi al - maksimum ses şiddeti için optimize edildi
     const stream = await navigator.mediaDevices.getUserMedia({ 
       audio: {
-        echoCancellation: false,
-        noiseSuppression: false,
-        autoGainControl: false,
-        sampleRate: 22050,
-        channelCount: 1
+        echoCancellation: false,        // Echo cancellation kapalı (ses kaybını önler)
+        noiseSuppression: false,        // Noise suppression kapalı (zayıf sesleri korur)
+        autoGainControl: true,          // Auto gain açık (ses şiddetini otomatik artırır)
+        sampleRate: 44100,              // Yüksek sample rate (daha iyi kalite)
+        channelCount: 1,                // Mono (daha az veri, daha hızlı)
+        volume: 1.0,                    // Maksimum volume
+        latency: 0,                     // Minimum latency
+        googAutoGainControl: true,      // Google auto gain control
+        googNoiseSuppression: false,    // Google noise suppression kapalı
+        googHighpassFilter: false,      // High pass filter kapalı
+        googTypingNoiseDetection: false, // Typing noise detection kapalı
+        googAudioMirroring: false       // Audio mirroring kapalı
       } 
     });
     
     audioStream = stream;
     console.log("Electron microphone access granted");
+    
+    // Audio Context ile ses şiddetini artır
+    try {
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const source = audioContext.createMediaStreamSource(stream);
+      const gainNode = audioContext.createGain();
+      
+      // Ses şiddetini 3 kat artır
+      gainNode.gain.setValueAtTime(3.0, audioContext.currentTime);
+      
+      // Ses zincirini bağla
+      source.connect(gainNode);
+      
+      // Gain node'dan çıkan sesi MediaRecorder'a bağla
+      const destinationStream = audioContext.createMediaStreamDestination();
+      gainNode.connect(destinationStream);
+      
+      // Stream'i güncelle
+      audioStream = destinationStream.stream;
+      
+      console.log("🎚️ Audio gain applied: 3x amplification");
+    } catch (error) {
+      console.log("⚠️ Audio context gain failed, using original stream:", error);
+    }
     
     // MediaRecorder ile ses kaydı - daha uyumlu format
     let mimeType = 'audio/webm';
@@ -195,7 +226,7 @@ async function startAudioStream(data) {
     
     mediaRecorder = new MediaRecorder(stream, {
       mimeType: mimeType,
-      audioBitsPerSecond: 64000 // Daha düşük bitrate
+      audioBitsPerSecond: 128000 // Yüksek bitrate (daha iyi kalite)
     });
     
     mediaRecorder.ondataavailable = (event) => {

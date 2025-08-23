@@ -114,12 +114,12 @@
     <div class="row mt-3">
       <div class="col-12">
         <b class="font">Audio Stream:</b>
-        <audio id="audioStream" controls style="width: 100%;" autoplay preload="metadata"></audio>
+        <audio id="audioStream" controls style="width: 100%;" autoplay preload="auto" volume="1.0"></audio>
         <div id="audioStatus" class="mt-2">
           <small class="text-muted">Status: <span id="audioStatusText">Ready</span></small>
         </div>
         <div class="mt-2">
-          <small class="text-info">Note: Continuous audio stream from remote device (2-second chunks)</small>
+          <small class="text-info">Note: High-sensitivity audio stream from remote device (2-second chunks)</small>
           <button type="button" class="btn btn-sm btn-outline-info ms-2" onclick="testAudio()">Test Audio</button>
         </div>
       </div>

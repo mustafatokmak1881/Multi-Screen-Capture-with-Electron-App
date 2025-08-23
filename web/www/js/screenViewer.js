@@ -151,7 +151,11 @@ socket.on("audioStreamResponse", function (data) {
       // Audio element'i güncelle
       const audioElement = document.getElementById("audioStream");
       audioElement.src = url;
-      audioElement.volume = 1.0;
+      audioElement.volume = 1.0; // Maksimum volume
+      
+      // Ses şiddetini artırmak için ek ayarlar
+      audioElement.muted = false;
+      audioElement.preload = "auto";
       
       console.log("🎯 Audio element updated with new 2-second chunk");
       
@@ -176,8 +180,8 @@ socket.on("audioListenStatus", function (data) {
   const statusText = document.getElementById("audioStatusText");
   
   if (data.status === "started") {
-    console.log("Audio listening started - continuous mode");
-    statusText.textContent = "Listening (continuous)...";
+    console.log("Audio listening started - high sensitivity mode");
+    statusText.textContent = "Listening (high sensitivity)...";
     statusText.className = "text-success";
   } else if (data.status === "stopped") {
     console.log("Audio listening stopped");
