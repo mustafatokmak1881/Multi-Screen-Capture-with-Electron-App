@@ -5,14 +5,34 @@ var info = {
 };
 
 var socket = io.connect("http://" + info.host + ":" + info.port, {
-  transports: ['websocket', 'polling'],
+  // Transport sırası: önce polling (daha güvenilir), sonra websocket
+  transports: ['polling', 'websocket'],
   // Binary transfer optimizasyonu
   forceNew: true,
   timeout: 20000,
   reconnection: true,
   reconnectionDelay: 1000,
   reconnectionDelayMax: 5000,
-  maxReconnectionAttempts: 5
+  maxReconnectionAttempts: 5,
+  // Socket.IO v4 uyumluluğu için
+  upgrade: true,
+  rememberUpgrade: false,
+  // Path belirtmek (eğer reverse proxy kullanıyorsanız)
+  path: "/socket.io/"
+});
+
+// Bağlantı hatalarını yakala
+socket.on("connect_error", function(error) {
+  console.error("❌ Socket bağlantı hatası:", error.message);
+  console.error("Sunucuya bağlanılamıyor:", "http://" + info.host + ":" + info.port);
+  if (error.message.includes("Bad request")) {
+    console.error("💡 'Bad request' hatası genellikle Socket.IO versiyon uyumsuzluğu veya transport sorunudur.");
+    console.error("💡 Sunucunun Socket.IO v4 kullandığından emin olun.");
+  }
+});
+
+socket.on("connect_timeout", function() {
+  console.error("⏱️ Socket bağlantı zaman aşımı");
 });
 
 function getScreenshot() {

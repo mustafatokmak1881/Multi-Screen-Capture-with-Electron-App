@@ -7,14 +7,20 @@ const io = require("socket.io")(httpServer, {
   pingTimeout: 60000,
   cors: {
     origin: "*",
+    methods: ["GET", "POST"],
+    credentials: true
   },
   // Binary transfer optimizasyonu
-  transports: ['websocket', 'polling'],
-  allowEIO3: true,
+  transports: ['polling', 'websocket'], // Polling önce (daha güvenilir)
+  allowEIO3: true, // Eski Socket.IO v3 client'ları için uyumluluk
   // Buffer optimizasyonu
   maxHttpBufferSize: 1e8,
   pingTimeout: 60000,
   pingInterval: 25000,
+  // Path belirtmek (reverse proxy için)
+  path: "/socket.io/",
+  // Connection state recovery (Socket.IO v4 özelliği)
+  connectTimeout: 45000,
 });
 
 app.get("/test", (req, res) => {
