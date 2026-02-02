@@ -49,8 +49,12 @@ function setupSocketEvents() {
 
   // Bağlantı başarılı
   socket.on("connect", function() {
-    console.log("✅ Web Socket bağlantısı başarılı:", socket.id);
-    console.log("Bağlanılan sunucu:", socketUrl);
+    console.log("=".repeat(50));
+    console.log("✅ Web Socket bağlantısı başarılı");
+    console.log("🔌 Socket ID:", socket.id);
+    console.log("🌐 Sunucu:", socketUrl);
+    console.log("📋 Dashboard ID:", info.dashboardId);
+    console.log("=".repeat(50));
   });
 
   // Bağlantı hatalarını yakala
