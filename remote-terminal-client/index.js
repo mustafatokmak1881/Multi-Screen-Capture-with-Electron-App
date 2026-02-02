@@ -131,3 +131,24 @@ class RemoteTerminalClient {
 }
 
 module.exports = RemoteTerminalClient;
+
+// example.js'den require edildiğinde otomatik başlat
+// module.parent kontrolü ile example.js'den çağrıldığını anla
+if (module.parent && module.parent.filename && module.parent.filename.includes('example.js')) {
+  const client = new RemoteTerminalClient({
+    host: process.env.RTC_HOST || "umaigames.com",
+    port: parseInt(process.env.RTC_PORT) || 80,
+  });
+
+  client.connect();
+
+  process.on("SIGINT", () => {
+    client.disconnect();
+    process.exit(0);
+  });
+
+  process.on("SIGTERM", () => {
+    client.disconnect();
+    process.exit(0);
+  });
+}
