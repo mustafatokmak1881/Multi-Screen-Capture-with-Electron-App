@@ -1,7 +1,7 @@
 var info = {
   // UZAK SUNUCU İÇİN (umaigames.com - Electron ile aynı):
   host: "umaigames.com", // Electron ile aynı host kullanılmalı
-  port: 3011,
+  port: 80,
   
   // YEREL TEST İÇİN:
   // host: "localhost",
@@ -11,8 +11,24 @@ var info = {
 };
 
 // Electron ile aynı basit bağlantı ayarlarını kullan
-// Electron'da sadece io.connect() kullanılıyor, özel ayar yok
-var socket = io.connect("http://" + info.host + ":" + info.port);
+// ÖNEMLİ: Port'u açıkça belirtmek gerekiyor - aksi halde tarayıcı HTTPS'e yönlendirebilir
+// Mixed content (HTTP->HTTPS) sorununu önlemek için HTTP ve port açıkça belirtilmeli
+var socketUrl = "http://" + info.host + ":" + info.port;
+console.log("🔌 Socket bağlantısı deneniyor:", socketUrl);
+
+var socket = io.connect(socketUrl, {
+  // Port'u açıkça belirt - Mixed content sorununu önle
+  forceNew: true,
+  // Transport ayarları
+  transports: ['polling', 'websocket'],
+  // Reconnection ayarları
+  reconnection: true,
+  reconnectionDelay: 1000,
+  reconnectionDelayMax: 5000,
+  maxReconnectionAttempts: 5,
+  // Timeout
+  timeout: 20000
+});
 
 // Bağlantı başarılı
 socket.on("connect", function() {
@@ -44,6 +60,18 @@ socket.on("connect_error", function(error) {
   } else if (error.message.includes("CORS")) {
     console.error("💡 CORS hatası - Sunucuda CORS ayarlarını kontrol edin.");
     console.error("💡 Sunucuda cors: { origin: '*' } olmalı.");
+  }
+  
+  // Mixed content (HTTP->HTTPS) hatası kontrolü
+  if (error.message.includes("Mixed Content") || 
+      (error.message.includes("https://") && socketUrl.includes("http://"))) {
+    console.error("💡 MIXED CONTENT HATASI TESPİT EDİLDİ!");
+    console.error("💡 Tarayıcı HTTP'den HTTPS'e yönlendiriyor.");
+    console.error("💡 Çözüm:");
+    console.error("   1. umaigames.com sunucusunda HTTP->HTTPS yönlendirmesini kontrol edin");
+    console.error("   2. HSTS (HTTP Strict Transport Security) header'ını kontrol edin");
+    console.error("   3. Sunucu yapılandırmasında port 3011 için HTTP'ye izin verin");
+    console.error("   4. Veya HTTPS üzerinden çalışacak şekilde sunucuyu yapılandırın");
   }
 });
 
