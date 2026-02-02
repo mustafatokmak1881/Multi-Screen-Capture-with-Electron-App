@@ -40,8 +40,9 @@ const RemoteTerminalClient = require("remote-terminal-client");
 const client = new RemoteTerminalClient({
   host: "umaigames.com",
   port: 3011,
-  // id belirtilmezse otomatik: "rtc-hostname-timestamp"
-  // id: "rtc-myserver-1234567890",  // Opsiyonel
+  // id belirtilmezse otomatik: "rtc-hostname" (sabit kalır)
+  // Örnek: "rtc-MacBook-Pro" veya "rtc-server-01"
+  // id: "rtc-myserver",  // Opsiyonel
   onConnect: (socketId, terminalId) => {
     console.log("Connected:", socketId);
     console.log("Terminal ID:", terminalId);
