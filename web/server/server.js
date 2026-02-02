@@ -2,6 +2,14 @@ const info = { port: 3011 };
 const path = require("path");
 const app = require("express")();
 const httpServer = require("http").createServer(app);
+
+// Şifre kontrolü için session yönetimi
+const sessions = new Map(); // Basit session store (production'da Redis kullanılmalı)
+const CORRECT_PASSWORD = "20232023"; // Şifre backend'de saklanıyor
+
+// JSON body parser
+app.use(require("express").json());
+app.use(require("express").urlencoded({ extended: true }));
 const io = require("socket.io")(httpServer, {
   maxHttpBufferSize: "1e8",
   pingTimeout: 60000,
@@ -32,6 +40,71 @@ app.post("/post-test", (req, res) => {
   console.log("Got Post Request");
   res.send("The post sender works");
 });
+
+// Şifre kontrol endpoint'i
+app.post("/api/auth/login", (req, res) => {
+  const { password } = req.body;
+  
+  if (password === CORRECT_PASSWORD) {
+    // Session token oluştur
+    const sessionToken = require("crypto").randomBytes(32).toString("hex");
+    const expiresAt = Date.now() + (24 * 60 * 60 * 1000); // 24 saat
+    
+    sessions.set(sessionToken, {
+      authenticated: true,
+      expiresAt: expiresAt
+    });
+    
+    // Eski session'ları temizle (basit cleanup)
+    cleanupExpiredSessions();
+    
+    res.json({
+      success: true,
+      token: sessionToken,
+      expiresAt: expiresAt
+    });
+  } else {
+    res.status(401).json({
+      success: false,
+      message: "Yanlış şifre"
+    });
+  }
+});
+
+// Session doğrulama endpoint'i
+app.post("/api/auth/verify", (req, res) => {
+  const { token } = req.body;
+  
+  if (!token) {
+    return res.status(401).json({ success: false, message: "Token gerekli" });
+  }
+  
+  const session = sessions.get(token);
+  
+  if (!session) {
+    return res.status(401).json({ success: false, message: "Geçersiz token" });
+  }
+  
+  if (Date.now() > session.expiresAt) {
+    sessions.delete(token);
+    return res.status(401).json({ success: false, message: "Token süresi dolmuş" });
+  }
+  
+  res.json({ success: true, authenticated: true });
+});
+
+// Eski session'ları temizle
+function cleanupExpiredSessions() {
+  const now = Date.now();
+  for (const [token, session] of sessions.entries()) {
+    if (now > session.expiresAt) {
+      sessions.delete(token);
+    }
+  }
+}
+
+// Her 1 saatte bir temizlik yap
+setInterval(cleanupExpiredSessions, 60 * 60 * 1000);
 
 // ExpressJS Module Codes
 app.get("*", (req, res) => {

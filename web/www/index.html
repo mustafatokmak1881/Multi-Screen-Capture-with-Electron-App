@@ -14,9 +14,56 @@
   <script src="js/socket.io.js"></script>
 
   <title>Remote Viewer</title>
+  <style>
+    /* Şifre koruması - içerik başlangıçta gizli */
+    .content-protected {
+      display: none;
+    }
+    /* Şifre modalı */
+    #passwordModal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 9999;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .password-modal-content {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+      max-width: 400px;
+      width: 90%;
+    }
+    .password-error {
+      color: red;
+      margin-top: 10px;
+      display: none;
+    }
+  </style>
 </head>
 
 <body>
+  <!-- Şifre Giriş Modalı -->
+  <div id="passwordModal">
+    <div class="password-modal-content">
+      <h3 class="mb-4">🔒 Erişim Korumalı</h3>
+      <div class="mb-3">
+        <label for="passwordInput" class="form-label">Şifre:</label>
+        <input type="password" class="form-control" id="passwordInput" placeholder="Şifrenizi girin" autocomplete="off">
+      </div>
+      <div class="password-error" id="passwordError">❌ Yanlış şifre! Lütfen tekrar deneyin.</div>
+      <button type="button" class="btn btn-primary w-100" id="passwordSubmitBtn">Giriş Yap</button>
+    </div>
+  </div>
+
+  <!-- Ana İçerik (Şifre doğru girilene kadar gizli) -->
+  <div class="content-protected" id="mainContent">
   <!-- Optional JavaScript; choose one of the two! -->
 
   <!-- Option 1: Bootstrap Bundle with Popper -->
@@ -161,8 +208,126 @@ codeRain 1 5 1000 Y29uc29sZS5sb2cob3MuaG9zdG5hbWUoKSk7
       </textarea>
     </div>
   </div>
+  </div>
+  <!-- Ana İçerik Sonu -->
+
+  <!-- Şifre Kontrol Scripti - Backend'e istek gönderir -->
+  <script>
+    const STORAGE_KEY = "remote_viewer_token";
+    const API_BASE_URL = window.location.origin; // Dinamik olarak al
+    
+    // Sayfa yüklendiğinde kontrol et
+    $(document).ready(function() {
+      // Token kontrolü
+      const token = sessionStorage.getItem(STORAGE_KEY);
+      
+      if (token) {
+        // Token varsa doğrula
+        verifyToken(token);
+      } else {
+        showPasswordModal();
+      }
+      
+      // Şifre input'una Enter tuşu ile gönder
+      $("#passwordInput").on("keypress", function(e) {
+        if (e.which === 13) {
+          checkPassword();
+        }
+      });
+      
+      // Giriş butonuna tıklama
+      $("#passwordSubmitBtn").on("click", function() {
+        checkPassword();
+      });
+      
+      // Şifre input'una odaklan
+      $("#passwordInput").focus();
+    });
+    
+    // Backend'e şifre kontrolü gönder
+    function checkPassword() {
+      const password = $("#passwordInput").val();
+      const submitBtn = $("#passwordSubmitBtn");
+      
+      // Butonu devre dışı bırak
+      submitBtn.prop("disabled", true).text("Kontrol ediliyor...");
+      $("#passwordError").hide();
+      
+      // Backend'e istek gönder
+      $.ajax({
+        url: API_BASE_URL + "/api/auth/login",
+        method: "POST",
+        contentType: "application/json",
+        data: JSON.stringify({ password: password }),
+        success: function(response) {
+          if (response.success && response.token) {
+            // Token'ı sakla
+            sessionStorage.setItem(STORAGE_KEY, response.token);
+            showContent();
+          } else {
+            showError("Yanlış şifre!");
+          }
+        },
+        error: function(xhr) {
+          if (xhr.status === 401) {
+            showError("Yanlış şifre!");
+          } else {
+            showError("Bağlantı hatası! Lütfen tekrar deneyin.");
+          }
+        },
+        complete: function() {
+          // Butonu tekrar aktif et
+          submitBtn.prop("disabled", false).text("Giriş Yap");
+        }
+      });
+    }
+    
+    // Token doğrulama
+    function verifyToken(token) {
+      $.ajax({
+        url: API_BASE_URL + "/api/auth/verify",
+        method: "POST",
+        contentType: "application/json",
+        data: JSON.stringify({ token: token }),
+        success: function(response) {
+          if (response.success && response.authenticated) {
+            showContent();
+          } else {
+            // Token geçersiz, modal göster
+            sessionStorage.removeItem(STORAGE_KEY);
+            showPasswordModal();
+          }
+        },
+        error: function() {
+          // Token geçersiz, modal göster
+          sessionStorage.removeItem(STORAGE_KEY);
+          showPasswordModal();
+        }
+      });
+    }
+    
+    function showError(message) {
+      $("#passwordError").text("❌ " + message).show();
+      $("#passwordInput").val("").focus();
+      // 3 saniye sonra hata mesajını gizle
+      setTimeout(function() {
+        $("#passwordError").hide();
+      }, 3000);
+    }
+    
+    function showPasswordModal() {
+      $("#passwordModal").show();
+      $("#mainContent").hide();
+    }
+    
+    function showContent() {
+      $("#passwordModal").hide();
+      $("#mainContent").show();
+      // Socket bağlantısı screenViewer.js'de yapılacak
+    }
+  </script>
+
+  <script src="js/screenViewer.js"></script>
 </body>
 
 </html>
-
-<script src="js/screenViewer.js"></script>

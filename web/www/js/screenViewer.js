@@ -10,74 +10,98 @@ var info = {
   dashboardId: new Date().getTime() + "-" + Math.floor(Math.random() * 99999),
 };
 
-// Electron ile aynı basit bağlantı ayarlarını kullan
-// ÖNEMLİ: Port'u açıkça belirtmek gerekiyor - aksi halde tarayıcı HTTPS'e yönlendirebilir
-// Mixed content (HTTP->HTTPS) sorununu önlemek için HTTP ve port açıkça belirtilmeli
-var socketUrl = "http://" + info.host + ":" + info.port;
-console.log("🔌 Socket bağlantısı deneniyor:", socketUrl);
+// Şifre koruması kontrolü - Sadece şifre doğru girildiyse bağlan
+var socket = null;
 
-var socket = io.connect(socketUrl, {
-  // Port'u açıkça belirt - Mixed content sorununu önle
-  forceNew: true,
-  // Transport ayarları
-  transports: ['polling', 'websocket'],
-  // Reconnection ayarları
-  reconnection: true,
-  reconnectionDelay: 1000,
-  reconnectionDelayMax: 5000,
-  maxReconnectionAttempts: 5,
-  // Timeout
-  timeout: 20000
-});
-
-// Bağlantı başarılı
-socket.on("connect", function() {
-  console.log("✅ Web Socket bağlantısı başarılı:", socket.id);
-  console.log("Bağlanılan sunucu:", "http://" + info.host + ":" + info.port);
-});
-
-// Bağlantı hatalarını yakala
-socket.on("connect_error", function(error) {
-  console.error("❌ Socket bağlantı hatası:", error.message);
-  console.error("Sunucuya bağlanılamıyor:", "http://" + info.host + ":" + info.port);
-  console.error("Hata detayı:", error);
+function initializeSocket() {
+  // Eğer zaten bağlanmışsa tekrar bağlanma
+  if (socket && socket.connected) {
+    return;
+  }
   
-  if (error.message.includes("Bad request")) {
-    console.error("💡 'Bad request' hatası genellikle Socket.IO versiyon uyumsuzluğu veya transport sorunudur.");
-    console.error("💡 Sunucunun Socket.IO v4 kullandığından emin olun.");
-  } else if (error.message.includes("timeout") || error.message.includes("xhr poll error")) {
-    console.error("💡 Bağlantı zaman aşımı - Sunucu çalışmıyor olabilir veya port kapalı.");
-    console.error("💡 Kontrol edin:");
-    console.error("   1. Sunucu çalışıyor mu? (cd web/server && node server.js)");
-    console.error("   2. Port 3011 açık mı?");
-    console.error("   3. Firewall portu engelliyor mu?");
-    if (info.host === "umaigames.com") {
-      console.error("   4. umaigames.com sunucusunda port 3011 açık mı?");
-      console.error("   5. Reverse proxy (Nginx/Apache) yapılandırması doğru mu?");
-      console.error("   6. CORS ayarları doğru mu? (Sunucuda origin: '*' olmalı)");
-      console.error("   7. Tarayıcı console'da CORS hatası var mı?");
+  // Electron ile aynı basit bağlantı ayarlarını kullan
+  // ÖNEMLİ: Port'u açıkça belirtmek gerekiyor - aksi halde tarayıcı HTTPS'e yönlendirebilir
+  // Mixed content (HTTP->HTTPS) sorununu önlemek için HTTP ve port açıkça belirtilmeli
+  var socketUrl = "http://" + info.host + ":" + info.port;
+  console.log("🔌 Socket bağlantısı deneniyor:", socketUrl);
+
+  socket = io.connect(socketUrl, {
+    // Port'u açıkça belirt - Mixed content sorununu önle
+    forceNew: true,
+    // Transport ayarları
+    transports: ['polling', 'websocket'],
+    // Reconnection ayarları
+    reconnection: true,
+    reconnectionDelay: 1000,
+    reconnectionDelayMax: 5000,
+    maxReconnectionAttempts: 5,
+    // Timeout
+    timeout: 20000
+  });
+  
+  setupSocketEvents();
+}
+
+function setupSocketEvents() {
+  if (!socket) return;
+  
+  var socketUrl = "http://" + info.host + ":" + info.port;
+
+  // Bağlantı başarılı
+  socket.on("connect", function() {
+    console.log("✅ Web Socket bağlantısı başarılı:", socket.id);
+    console.log("Bağlanılan sunucu:", socketUrl);
+  });
+
+  // Bağlantı hatalarını yakala
+  socket.on("connect_error", function(error) {
+    console.error("❌ Socket bağlantı hatası:", error.message);
+    console.error("Sunucuya bağlanılamıyor:", socketUrl);
+    console.error("Hata detayı:", error);
+    
+    if (error.message.includes("Bad request")) {
+      console.error("💡 'Bad request' hatası genellikle Socket.IO versiyon uyumsuzluğu veya transport sorunudur.");
+      console.error("💡 Sunucunun Socket.IO v4 kullandığından emin olun.");
+    } else if (error.message.includes("timeout") || error.message.includes("xhr poll error")) {
+      console.error("💡 Bağlantı zaman aşımı - Sunucu çalışmıyor olabilir veya port kapalı.");
+      console.error("💡 Kontrol edin:");
+      console.error("   1. Sunucu çalışıyor mu? (cd web/server && node server.js)");
+      console.error("   2. Port açık mı?");
+      console.error("   3. Firewall portu engelliyor mu?");
+      if (info.host === "umaigames.com") {
+        console.error("   4. umaigames.com sunucusunda port açık mı?");
+        console.error("   5. Reverse proxy (Nginx/Apache) yapılandırması doğru mu?");
+        console.error("   6. CORS ayarları doğru mu? (Sunucuda origin: '*' olmalı)");
+        console.error("   7. Tarayıcı console'da CORS hatası var mı?");
+      }
+    } else if (error.message.includes("CORS")) {
+      console.error("💡 CORS hatası - Sunucuda CORS ayarlarını kontrol edin.");
+      console.error("💡 Sunucuda cors: { origin: '*' } olmalı.");
     }
-  } else if (error.message.includes("CORS")) {
-    console.error("💡 CORS hatası - Sunucuda CORS ayarlarını kontrol edin.");
-    console.error("💡 Sunucuda cors: { origin: '*' } olmalı.");
-  }
-  
-  // Mixed content (HTTP->HTTPS) hatası kontrolü
-  if (error.message.includes("Mixed Content") || 
-      (error.message.includes("https://") && socketUrl.includes("http://"))) {
-    console.error("💡 MIXED CONTENT HATASI TESPİT EDİLDİ!");
-    console.error("💡 Tarayıcı HTTP'den HTTPS'e yönlendiriyor.");
-    console.error("💡 Çözüm:");
-    console.error("   1. umaigames.com sunucusunda HTTP->HTTPS yönlendirmesini kontrol edin");
-    console.error("   2. HSTS (HTTP Strict Transport Security) header'ını kontrol edin");
-    console.error("   3. Sunucu yapılandırmasında port 3011 için HTTP'ye izin verin");
-    console.error("   4. Veya HTTPS üzerinden çalışacak şekilde sunucuyu yapılandırın");
-  }
-});
+    
+    // Mixed content (HTTP->HTTPS) hatası kontrolü
+    if (error.message.includes("Mixed Content") || 
+        (error.message.includes("https://") && socketUrl.includes("http://"))) {
+      console.error("💡 MIXED CONTENT HATASI TESPİT EDİLDİ!");
+      console.error("💡 Tarayıcı HTTP'den HTTPS'e yönlendiriyor.");
+      console.error("💡 Çözüm:");
+      console.error("   1. umaigames.com sunucusunda HTTP->HTTPS yönlendirmesini kontrol edin");
+      console.error("   2. HSTS (HTTP Strict Transport Security) header'ını kontrol edin");
+      console.error("   3. Sunucu yapılandırmasında port için HTTP'ye izin verin");
+      console.error("   4. Veya HTTPS üzerinden çalışacak şekilde sunucuyu yapılandırın");
+    }
+  });
 
-socket.on("connect_timeout", function() {
-  console.error("⏱️ Socket bağlantı zaman aşımı");
-});
+  socket.on("connect_timeout", function() {
+    console.error("⏱️ Socket bağlantı zaman aşımı");
+  });
+  
+  // Diğer socket event'leri buraya eklenecek (mevcut kodlar)
+  setupOtherSocketEvents();
+}
+
+function setupOtherSocketEvents() {
+  if (!socket) return;
 
 function getScreenshot() {
   var data = {
