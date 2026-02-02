@@ -22,7 +22,6 @@ class RemoteTerminalClient {
    */
   connect() {
     const socketUrl = `http://${this.host}:${this.port}`;
-    console.log(`🔌 Connecting to ${socketUrl}...`);
     
     this.socket = io.connect(socketUrl, {
       transports: ['polling', 'websocket'],
@@ -42,13 +41,7 @@ class RemoteTerminalClient {
   setupEventHandlers() {
     // Bağlantı başarılı
     this.socket.on("connect", () => {
-      console.log("=".repeat(50));
-      console.log("✅ Connected to server");
-      console.log("📋 Terminal ID:", this.id);
-      console.log("🔌 Socket ID:", this.socket.id);
-      console.log("🌐 Server:", `http://${this.host}:${this.port}`);
-      console.log("🏠 Room:", `terminal-${this.id}`);
-      console.log("=".repeat(50));
+      console.log("Connected");
       this.connected = true;
       
       // Terminal odasına katıl
@@ -63,7 +56,6 @@ class RemoteTerminalClient {
 
     // Bağlantı kesildi
     this.socket.on("disconnect", (reason) => {
-      console.log("🔌 Disconnected:", reason);
       this.connected = false;
       
       if (this.onDisconnect) {
@@ -73,8 +65,6 @@ class RemoteTerminalClient {
 
     // Bağlantı hatası
     this.socket.on("connect_error", (error) => {
-      console.error("❌ Connection error:", error.message);
-      
       if (this.onError) {
         this.onError(error);
       }
@@ -82,7 +72,6 @@ class RemoteTerminalClient {
 
     // Komut isteği - Ana mantık burada
     this.socket.on("getRunRequest", (data) => {
-      console.log("📥 Command received:", data.cmd);
       this.handleCommand(data);
     });
   }
@@ -114,13 +103,11 @@ class RemoteTerminalClient {
 
           // Sonucu sunucuya gönder
           this.socket.emit("getRunResponse", data);
-          console.log("📤 Command response sent");
         }
       );
     } catch (error) {
       data["cmd"] = "catchError: " + error.message;
       this.socket.emit("getRunResponse", data);
-      console.error("❌ Command execution error:", error);
     }
   }
 
