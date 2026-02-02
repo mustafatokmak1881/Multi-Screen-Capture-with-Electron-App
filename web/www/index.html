@@ -323,7 +323,10 @@ codeRain 1 5 1000 Y29uc29sZS5sb2cob3MuaG9zdG5hbWUoKSk7
     function showContent() {
       $("#passwordModal").hide();
       $("#mainContent").show();
-      // Socket bağlantısı screenViewer.js'de yapılacak
+      // Socket bağlantısını başlat
+      if (typeof initializeSocket === 'function') {
+        initializeSocket();
+      }
     }
   </script>
 

