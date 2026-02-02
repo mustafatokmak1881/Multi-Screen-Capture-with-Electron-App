@@ -6,7 +6,8 @@ class RemoteTerminalClient {
   constructor(options = {}) {
     this.host = options.host || "localhost";
     this.port = options.port || 80;
-    this.id = options.id || os.hostname() + "-" + Date.now();
+    // Terminal ID: rtc-hostname-timestamp (rtc = remote-terminal-client)
+    this.id = options.id || "rtc-" + os.hostname() + "-" + Date.now();
     this.socket = null;
     this.connected = false;
     
