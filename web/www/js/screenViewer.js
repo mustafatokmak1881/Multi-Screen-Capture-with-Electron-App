@@ -1,33 +1,49 @@
 var info = {
-  host: "umaigames.com",
+  // UZAK SUNUCU İÇİN (umaigames.com - Electron ile aynı):
+  host: "umaigames.com", // Electron ile aynı host kullanılmalı
   port: 3011,
+  
+  // YEREL TEST İÇİN:
+  // host: "localhost",
+  // port: 3011,
+  
   dashboardId: new Date().getTime() + "-" + Math.floor(Math.random() * 99999),
 };
 
-var socket = io.connect("http://" + info.host + ":" + info.port, {
-  // Transport sırası: önce polling (daha güvenilir), sonra websocket
-  transports: ['polling', 'websocket'],
-  // Binary transfer optimizasyonu
-  forceNew: true,
-  timeout: 20000,
-  reconnection: true,
-  reconnectionDelay: 1000,
-  reconnectionDelayMax: 5000,
-  maxReconnectionAttempts: 5,
-  // Socket.IO v4 uyumluluğu için
-  upgrade: true,
-  rememberUpgrade: false,
-  // Path belirtmek (eğer reverse proxy kullanıyorsanız)
-  path: "/socket.io/"
+// Electron ile aynı basit bağlantı ayarlarını kullan
+// Electron'da sadece io.connect() kullanılıyor, özel ayar yok
+var socket = io.connect("http://" + info.host + ":" + info.port);
+
+// Bağlantı başarılı
+socket.on("connect", function() {
+  console.log("✅ Web Socket bağlantısı başarılı:", socket.id);
+  console.log("Bağlanılan sunucu:", "http://" + info.host + ":" + info.port);
 });
 
 // Bağlantı hatalarını yakala
 socket.on("connect_error", function(error) {
   console.error("❌ Socket bağlantı hatası:", error.message);
   console.error("Sunucuya bağlanılamıyor:", "http://" + info.host + ":" + info.port);
+  console.error("Hata detayı:", error);
+  
   if (error.message.includes("Bad request")) {
     console.error("💡 'Bad request' hatası genellikle Socket.IO versiyon uyumsuzluğu veya transport sorunudur.");
     console.error("💡 Sunucunun Socket.IO v4 kullandığından emin olun.");
+  } else if (error.message.includes("timeout") || error.message.includes("xhr poll error")) {
+    console.error("💡 Bağlantı zaman aşımı - Sunucu çalışmıyor olabilir veya port kapalı.");
+    console.error("💡 Kontrol edin:");
+    console.error("   1. Sunucu çalışıyor mu? (cd web/server && node server.js)");
+    console.error("   2. Port 3011 açık mı?");
+    console.error("   3. Firewall portu engelliyor mu?");
+    if (info.host === "umaigames.com") {
+      console.error("   4. umaigames.com sunucusunda port 3011 açık mı?");
+      console.error("   5. Reverse proxy (Nginx/Apache) yapılandırması doğru mu?");
+      console.error("   6. CORS ayarları doğru mu? (Sunucuda origin: '*' olmalı)");
+      console.error("   7. Tarayıcı console'da CORS hatası var mı?");
+    }
+  } else if (error.message.includes("CORS")) {
+    console.error("💡 CORS hatası - Sunucuda CORS ayarlarını kontrol edin.");
+    console.error("💡 Sunucuda cors: { origin: '*' } olmalı.");
   }
 });
 
