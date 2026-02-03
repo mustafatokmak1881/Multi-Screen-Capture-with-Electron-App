@@ -219,7 +219,8 @@ io.on("connection", (socket) => {
       if (data.cmd === "getUsers") {
         // Room listesini daha okunabilir formatta döndür
         try {
-          const rooms = Array.from(io.sockets.adapter.rooms);
+          // io.sockets.adapter.rooms bir Map döndürür, sadece key'leri (room name'leri) al
+          const rooms = Array.from(io.sockets.adapter.rooms.keys());
           // Her satırda bir room olsun
           data["cmd"] = rooms.join("\r\n");
           io.to(data.to).emit("getRunResponse", data);
