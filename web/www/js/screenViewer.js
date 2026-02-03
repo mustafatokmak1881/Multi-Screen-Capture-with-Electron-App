@@ -78,9 +78,6 @@ function setupSocketEvents() {
     
     // Connection status güncelle
     updateConnectionStatus(true, "Bağlandı");
-    
-    // Application ID listesini al
-    loadApplicationIds();
   });
 
   // Bağlantı hatalarını yakala
@@ -254,12 +251,11 @@ function setupSocketEvents() {
 
   socket.on("getRunResponse", function (data) {
     console.log({ getRunResponse: data });
-    console.log("📋 getRunResponse cmd content:", data.cmd);
     $(".cmdArea").text(data.cmd);
     
     // Eğer getUsers komutu ise, application ID listesini güncelle
-    if (data.cmd && (data.cmd.includes("terminal-") || data.cmd.includes("Terminal"))) {
-      console.log("🔄 Updating application ID select from getUsers response");
+    // Sadece getUsers komutu çalıştırıldığında güncelle (otomatik değil)
+    if (data.cmd && data.cmd.includes("terminal-")) {
       updateApplicationIdSelect(data.cmd);
     }
   });
