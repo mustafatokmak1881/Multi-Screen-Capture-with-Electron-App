@@ -344,10 +344,11 @@ class RemoteControl {
     });
 
     // Server'ı dinamik port'ta başlat
+    // 0.0.0.0 kullanarak tüm network interface'lerinden erişilebilir yap
     const server = http.createServer(proxyApp);
-    server.listen(0, '127.0.0.1', () => {
+    server.listen(0, '0.0.0.0', () => {
       this.proxyPort = server.address().port;
-      console.log("Proxy server started on port:", this.proxyPort);
+      console.log("Proxy server started on port:", this.proxyPort, "accessible from:", info.host);
     });
 
     this.proxyServer = server;
@@ -398,8 +399,8 @@ class RemoteControl {
       let html = response.data;
       const baseUrl = new URL(targetUrl);
       
-      // Proxy base URL oluştur
-      const proxyBaseUrl = this.proxyPort ? `http://${info.host}:${this.proxyPort}/proxy?url=` : null;
+      // Proxy base URL oluştur (sadece base, ?url= eklenmeyecek)
+      const proxyBaseUrl = this.proxyPort ? `http://${info.host}:${this.proxyPort}/proxy` : null;
 
       // HTML içindeki tüm relative URL'leri proxy URL'ye çevir
       html = this.rewriteHTMLUrls(html, baseUrl, proxyBaseUrl);
@@ -458,7 +459,7 @@ class RemoteControl {
         try {
           if (!src.startsWith('javascript:') && !src.startsWith('data:') && !src.startsWith('blob:')) {
             const absoluteSrc = new URL(src, baseUrl).href;
-            const proxySrc = proxyBaseUrl ? `${proxyBaseUrl}&url=${encodeURIComponent(absoluteSrc)}` : absoluteSrc;
+            const proxySrc = proxyBaseUrl ? `${proxyBaseUrl}?url=${encodeURIComponent(absoluteSrc)}` : absoluteSrc;
             return `<img${attrs} src="${proxySrc}"`;
           }
           return match;
@@ -472,7 +473,7 @@ class RemoteControl {
         try {
           if (!src.startsWith('javascript:') && !src.startsWith('data:') && !src.startsWith('blob:')) {
             const absoluteSrc = new URL(src, baseUrl).href;
-            const proxySrc = proxyBaseUrl ? `${proxyBaseUrl}&url=${encodeURIComponent(absoluteSrc)}` : absoluteSrc;
+            const proxySrc = proxyBaseUrl ? `${proxyBaseUrl}?url=${encodeURIComponent(absoluteSrc)}` : absoluteSrc;
             return `<script${attrs} src="${proxySrc}"`;
           }
           return match;
@@ -486,7 +487,7 @@ class RemoteControl {
         try {
           if (!href.startsWith('javascript:') && !href.startsWith('data:') && !href.startsWith('blob:')) {
             const absoluteHref = new URL(href, baseUrl).href;
-            const proxyHref = proxyBaseUrl ? `${proxyBaseUrl}&url=${encodeURIComponent(absoluteHref)}` : absoluteHref;
+            const proxyHref = proxyBaseUrl ? `${proxyBaseUrl}?url=${encodeURIComponent(absoluteHref)}` : absoluteHref;
             return `<link${attrs} href="${proxyHref}"`;
           }
           return match;
@@ -536,7 +537,7 @@ class RemoteControl {
             try {
               if (!url.startsWith('data:') && !url.startsWith('javascript:') && !url.startsWith('#') && !url.startsWith('blob:')) {
                 const absoluteUrl = new URL(url, baseUrl).href;
-                const proxyUrl = proxyBaseUrl ? `${proxyBaseUrl}&url=${encodeURIComponent(absoluteUrl)}` : absoluteUrl;
+                const proxyUrl = proxyBaseUrl ? `${proxyBaseUrl}?url=${encodeURIComponent(absoluteUrl)}` : absoluteUrl;
                 return `url("${proxyUrl}")`;
               }
               return cssMatch;
