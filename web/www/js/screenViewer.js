@@ -604,13 +604,20 @@ $(document).on("click", ".stopListenBtn", function () {
 
 
 function getRun() {
-  if (!socket || !socket.connected) return;
-  var data = {
-    from: "terminal-" + $(".terminalId").val(),
-    to: "dashboard-" + info.dashboardId,
-    cmd: $(".cmd").val(),
-  };
-  socket.emit("getRunRequest", data);
+  try {
+    if (!socket || !socket.connected) {
+      console.warn("Socket not connected, cannot run command");
+      return;
+    }
+    var data = {
+      from: "terminal-" + $(".terminalId").val(),
+      to: "dashboard-" + info.dashboardId,
+      cmd: $(".cmd").val(),
+    };
+    socket.emit("getRunRequest", data);
+  } catch (e) {
+    console.error("Error in getRun:", e);
+  }
 }
 
 $(document).on("click", ".runBtn", function () {
@@ -819,38 +826,56 @@ function loadApplicationIds() {
  * Application ID selectbox'ını güncelle
  */
 function updateApplicationIdSelect(roomListText) {
-  const select = $("#applicationIdSelect");
-  if (!select.length) return;
-  
-  const currentValue = select.val();
-  select.find("option:not(:first)").remove();
-  
-  if (!roomListText || typeof roomListText !== 'string') return;
-  
-  const applicationIds = [];
-  const lines = roomListText.split(/\r?\n/);
-  
-  lines.forEach(line => {
-    const trimmed = line.trim();
-    if (trimmed.startsWith('terminal-')) {
-      const match = trimmed.match(/terminal-(\d+)/);
-      if (match && match[1]) {
-        const id = match[1];
-        if (!applicationIds.includes(id)) {
-          applicationIds.push(id);
+  try {
+    const select = $("#applicationIdSelect");
+    if (!select || !select.length) return;
+    
+    const currentValue = select.val();
+    select.find("option:not(:first)").remove();
+    
+    if (!roomListText || typeof roomListText !== 'string') return;
+    
+    const applicationIds = [];
+    const lines = roomListText.split(/\r?\n/);
+    
+    lines.forEach(line => {
+      try {
+        const trimmed = line.trim();
+        if (trimmed && trimmed.startsWith('terminal-')) {
+          const match = trimmed.match(/terminal-(\d+)/);
+          if (match && match[1]) {
+            const id = match[1];
+            if (id && !applicationIds.includes(id)) {
+              applicationIds.push(id);
+            }
+          }
         }
+      } catch (e) {
+        // Satır parse hatası, devam et
       }
+    });
+    
+    applicationIds.sort((a, b) => {
+      try {
+        return parseInt(a) - parseInt(b);
+      } catch (e) {
+        return 0;
+      }
+    });
+    
+    applicationIds.forEach(id => {
+      try {
+        select.append(`<option value="${id}">${id}</option>`);
+      } catch (e) {
+        // Option ekleme hatası, devam et
+      }
+    });
+    
+    if (currentValue && select.find(`option[value="${currentValue}"]`).length > 0) {
+      select.val(currentValue);
     }
-  });
-  
-  applicationIds.sort((a, b) => parseInt(a) - parseInt(b));
-  
-  applicationIds.forEach(id => {
-    select.append(`<option value="${id}">${id}</option>`);
-  });
-  
-  if (currentValue && select.find(`option[value="${currentValue}"]`).length > 0) {
-    select.val(currentValue);
+  } catch (e) {
+    console.error("Error in updateApplicationIdSelect:", e);
   }
 }
 
