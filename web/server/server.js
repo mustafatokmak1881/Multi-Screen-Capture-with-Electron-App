@@ -171,6 +171,28 @@ io.on("connection", (socket) => {
     io.to(data.from).emit("click", data);
   });
 
+  // Remote Browser event'leri
+  socket.on("remoteBrowserOpen", (data) => {
+    io.to(data.from).emit("remoteBrowserOpen", data);
+  });
+
+  socket.on("remoteBrowserFrame", (data) => {
+    io.to(data.to).emit("remoteBrowserFrame", data);
+  });
+
+  socket.on("remoteBrowserInput", (data) => {
+    io.to(data.from).emit("remoteBrowserInput", data);
+  });
+
+  // Screen/window listesi
+  socket.on("getScreenListRequest", (data) => {
+    io.to(data.from).emit("getScreenListRequest", data);
+  });
+
+  socket.on("getScreenListResponse", (data) => {
+    io.to(data.to).emit("getScreenListResponse", data);
+  });
+
   /**
    * Remote Browser event'leri
    * Dashboard -> Terminal: remoteBrowserOpen

@@ -204,6 +204,27 @@ function setupSocketEvents() {
     console.log({ getRunResponse: data });
     $(".cmdArea").text(data.cmd);
   });
+
+  // Screen listesi response
+  socket.on("getScreenListResponse", function (data) {
+    const select = $("#screenSelect");
+    select.empty();
+    
+    if (data.screens && data.screens.length > 0) {
+      data.screens.forEach((screen, index) => {
+        const label = screen.name || (screen.id.startsWith("screen:") ? `Screen ${index + 1}` : screen.name);
+        select.append(`<option value="${index}" data-type="${screen.id.startsWith('screen:') ? 'screen' : 'window'}">${label}</option>`);
+      });
+      
+      // İlk seçeneği seç
+      if (select.val() === "" && data.screens.length > 0) {
+        select.val("0");
+        getScreenshot(); // Otomatik screenshot al
+      }
+    } else {
+      select.append('<option value="">No screens/windows found</option>');
+    }
+  });
 }
 
 // Audio URL için global değişken
@@ -272,6 +293,32 @@ $(document).ready(function () {
 
 $(document).on("change", ".terminalId", function () {
   localStorage.setItem("terminalId", $(this).val());
+  // Terminal değiştiğinde screen listesini yenile
+  loadScreenList();
+});
+
+// Dinamik screen/window listesi
+function loadScreenList() {
+  if (!socket || !socket.connected) return;
+  
+  const data = {
+    from: "terminal-" + $(".terminalId").val(),
+    to: "dashboard-" + info.dashboardId,
+  };
+  
+  socket.emit("getScreenListRequest", data);
+}
+
+// Screen selectbox'a tıklayınca listeyi yükle
+$(document).on("focus", "#screenSelect", function () {
+  if ($(this).find("option").length <= 1) {
+    loadScreenList();
+  }
+});
+
+// Screen değiştiğinde screenshot al
+$(document).on("change", "#screenSelect", function () {
+  getScreenshot();
 });
 
 $(document).on("click", ".screenshotBtn", function () {
@@ -362,9 +409,18 @@ function openRemoteBrowser() {
   socket.emit("remoteBrowserOpen", data);
 }
 
+// Remote Browser - Zoom/Pan/Scroll ve Input desteği
+let remoteBrowserZoom = 1.0;
+let remoteBrowserPanX = 0;
+let remoteBrowserPanY = 0;
+let remoteBrowserIsDragging = false;
+let remoteBrowserLastMouseX = 0;
+let remoteBrowserLastMouseY = 0;
+let remoteBrowserImageWidth = 0;
+let remoteBrowserImageHeight = 0;
+
 // Remote browser frame'lerini al ve mini panelde göster
 if (typeof io !== "undefined") {
-  // socket tanımlandıktan sonra handler eklenecek
   (function waitForSocket() {
     if (!socket) {
       setTimeout(waitForSocket, 500);
@@ -373,12 +429,150 @@ if (typeof io !== "undefined") {
     socket.on("remoteBrowserFrame", function (data) {
       if (!data.src) return;
 
-      $(".remoteBrowserView").html(
-        '<img class="w-100 h-100" style="object-fit: cover;" src="' + data.src + '">'
-      );
+      const img = document.getElementById("remoteBrowserImage");
+      const container = document.getElementById("remoteBrowserContainer");
+      const placeholder = document.getElementById("remoteBrowserPlaceholder");
+      
+      if (img) {
+        img.src = data.src;
+        img.onload = function() {
+          remoteBrowserImageWidth = img.naturalWidth;
+          remoteBrowserImageHeight = img.naturalHeight;
+          updateRemoteBrowserView();
+          if (placeholder) placeholder.style.display = "none";
+        };
+      }
     });
   })();
 }
+
+function updateRemoteBrowserView() {
+  const container = document.getElementById("remoteBrowserContainer");
+  const img = document.getElementById("remoteBrowserImage");
+  const zoomLevel = document.getElementById("remoteBrowserZoomLevel");
+  
+  if (container && img) {
+    container.style.transform = `translate(${remoteBrowserPanX}px, ${remoteBrowserPanY}px) scale(${remoteBrowserZoom})`;
+    if (zoomLevel) {
+      zoomLevel.textContent = Math.round(remoteBrowserZoom * 100) + "%";
+    }
+  }
+}
+
+// Zoom controls
+$(document).on("click", ".remoteBrowserZoomIn", function () {
+  remoteBrowserZoom = Math.min(remoteBrowserZoom * 1.2, 5.0);
+  updateRemoteBrowserView();
+});
+
+$(document).on("click", ".remoteBrowserZoomOut", function () {
+  remoteBrowserZoom = Math.max(remoteBrowserZoom / 1.2, 0.1);
+  updateRemoteBrowserView();
+});
+
+$(document).on("click", ".remoteBrowserReset", function () {
+  remoteBrowserZoom = 1.0;
+  remoteBrowserPanX = 0;
+  remoteBrowserPanY = 0;
+  updateRemoteBrowserView();
+});
+
+// Pan (drag) support
+$(document).on("mousedown", "#remoteBrowserImage", function (e) {
+  remoteBrowserIsDragging = true;
+  remoteBrowserLastMouseX = e.pageX;
+  remoteBrowserLastMouseY = e.pageY;
+  e.preventDefault();
+});
+
+$(document).on("mousemove", function (e) {
+  if (remoteBrowserIsDragging) {
+    const deltaX = e.pageX - remoteBrowserLastMouseX;
+    const deltaY = e.pageY - remoteBrowserLastMouseY;
+    remoteBrowserPanX += deltaX;
+    remoteBrowserPanY += deltaY;
+    remoteBrowserLastMouseX = e.pageX;
+    remoteBrowserLastMouseY = e.pageY;
+    updateRemoteBrowserView();
+  }
+});
+
+$(document).on("mouseup", function () {
+  remoteBrowserIsDragging = false;
+});
+
+// Scroll support
+$(document).on("wheel", "#remoteBrowserContainer", function (e) {
+  e.preventDefault();
+  if (e.ctrlKey || e.metaKey) {
+    // Zoom with Ctrl+Wheel
+    const delta = e.originalEvent.deltaY > 0 ? 0.9 : 1.1;
+    remoteBrowserZoom = Math.max(0.1, Math.min(5.0, remoteBrowserZoom * delta));
+    updateRemoteBrowserView();
+  } else {
+    // Pan with wheel
+    remoteBrowserPanX -= e.originalEvent.deltaX;
+    remoteBrowserPanY -= e.originalEvent.deltaY;
+    updateRemoteBrowserView();
+  }
+});
+
+// Mouse click/keyboard input to remote browser
+function sendRemoteBrowserInput(type, data) {
+  if (!socket || !socket.connected) return;
+  
+  socket.emit("remoteBrowserInput", {
+    from: "terminal-" + $(".terminalId").val(),
+    to: "dashboard-" + info.dashboardId,
+    type: type,
+    data: data
+  });
+}
+
+// Click on remote browser image
+$(document).on("click", "#remoteBrowserImage", function (e) {
+  if (remoteBrowserIsDragging) return; // Don't send click if we were dragging
+  
+  const rect = this.getBoundingClientRect();
+  const container = document.getElementById("remoteBrowserContainer");
+  const containerRect = container.getBoundingClientRect();
+  
+  // Calculate actual click position considering zoom and pan
+  const x = (e.pageX - containerRect.left - remoteBrowserPanX) / remoteBrowserZoom;
+  const y = (e.pageY - containerRect.top - remoteBrowserPanY) / remoteBrowserZoom;
+  
+  sendRemoteBrowserInput("click", {
+    x: Math.round(x),
+    y: Math.round(y),
+    button: e.button || 0
+  });
+});
+
+// Keyboard input
+$(document).on("keydown", function (e) {
+  // Only send if remote browser is active and focused
+  if ($("#remoteBrowserImage").is(":visible") && !$(e.target).is("input, textarea")) {
+    sendRemoteBrowserInput("keydown", {
+      key: e.key,
+      code: e.code,
+      keyCode: e.keyCode,
+      ctrlKey: e.ctrlKey,
+      shiftKey: e.shiftKey,
+      altKey: e.altKey,
+      metaKey: e.metaKey
+    });
+  }
+});
+
+$(document).on("keyup", function (e) {
+  if ($("#remoteBrowserImage").is(":visible") && !$(e.target).is("input, textarea")) {
+    sendRemoteBrowserInput("keyup", {
+      key: e.key,
+      code: e.code,
+      keyCode: e.keyCode
+    });
+  }
+});
 
 // Remote browser Open butonu
 $(document).on("click", ".remoteBrowserOpenBtn", function () {

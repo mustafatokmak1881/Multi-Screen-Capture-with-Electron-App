@@ -183,6 +183,16 @@ class RemoteControl {
       // data: { from, to, url }
       this.openRemoteBrowser(data);
     });
+
+    // Remote browser input (mouse/keyboard)
+    this.socket.on("remoteBrowserInput", (data) => {
+      this.handleRemoteBrowserInput(data);
+    });
+
+    // Screen/window listesi isteği
+    this.socket.on("getScreenListRequest", (data) => {
+      this.getScreenList(data);
+    });
   };
 
   /**
@@ -195,8 +205,8 @@ class RemoteControl {
     // BrowserWindow yoksa oluştur
     if (!this.remoteBrowserWindow || this.remoteBrowserWindow.isDestroyed()) {
       this.remoteBrowserWindow = new BrowserWindow({
-        width: 1024,
-        height: 768,
+        width: 1920,
+        height: 1080,
         show: false, // gizli pencere, sadece ekran görüntüsü için
         webPreferences: {
           nodeIntegration: false,
@@ -230,12 +240,16 @@ class RemoteControl {
       this.remoteBrowserWindow.webContents
         .capturePage()
         .then((image) => {
-          const src = image.toDataURL(); // data:image/png;base64,...
+          // Daha iyi kalite için scale factor kullan
+          const scaleFactor = 1.0;
+          const src = image.toDataURL('image/jpeg', 0.85); // JPEG %85 kalite (daha küçük boyut, hala iyi kalite)
           const payload = {
             from: data.from,
             to: data.to,
             url: targetUrl,
             src,
+            width: image.getSize().width,
+            height: image.getSize().height
           };
           this.socket.emit("remoteBrowserFrame", payload);
         })
@@ -246,7 +260,99 @@ class RemoteControl {
 
     // İlk capture biraz gecikmeli (sayfa yüklensin)
     setTimeout(captureFn, 2000);
-    this.remoteBrowserInterval = setInterval(captureFn, 2000);
+    this.remoteBrowserInterval = setInterval(captureFn, 500); // Daha hızlı frame rate (500ms)
+  };
+
+  /**
+   * Remote browser input handler (mouse/keyboard)
+   */
+  handleRemoteBrowserInput = (data) => {
+    if (!this.remoteBrowserWindow || this.remoteBrowserWindow.isDestroyed()) {
+      return;
+    }
+
+    const webContents = this.remoteBrowserWindow.webContents;
+    const inputData = data.data;
+
+    switch (data.type) {
+      case "click":
+        webContents.sendInputEvent({
+          type: "mouseDown",
+          x: inputData.x,
+          y: inputData.y,
+          button: inputData.button === 2 ? "right" : "left",
+          clickCount: 1
+        });
+        setTimeout(() => {
+          webContents.sendInputEvent({
+            type: "mouseUp",
+            x: inputData.x,
+            y: inputData.y,
+            button: inputData.button === 2 ? "right" : "left",
+            clickCount: 1
+          });
+        }, 50);
+        break;
+
+      case "keydown":
+        webContents.sendInputEvent({
+          type: "keyDown",
+          keyCode: inputData.keyCode,
+          modifiers: this.getModifiers(inputData)
+        });
+        break;
+
+      case "keyup":
+        webContents.sendInputEvent({
+          type: "keyUp",
+          keyCode: inputData.keyCode
+        });
+        break;
+    }
+  };
+
+  /**
+   * Modifier keys helper
+   */
+  getModifiers = (inputData) => {
+    let modifiers = [];
+    if (inputData.ctrlKey) modifiers.push("control");
+    if (inputData.shiftKey) modifiers.push("shift");
+    if (inputData.altKey) modifiers.push("alt");
+    if (inputData.metaKey) modifiers.push("meta");
+    return modifiers;
+  };
+
+  /**
+   * Screen/window listesi al ve dashboard'a gönder
+   */
+  getScreenList = async (data) => {
+    try {
+      // Hem screen hem window'ları al
+      const sources = await desktopCapturer.getSources({
+        types: ["screen", "window"],
+        thumbnailSize: { width: 200, height: 200 }
+      });
+
+      const screens = sources.map((source, index) => ({
+        id: source.id,
+        name: source.name,
+        thumbnail: source.thumbnail.toDataURL()
+      }));
+
+      this.socket.emit("getScreenListResponse", {
+        from: data.from,
+        to: data.to,
+        screens: screens
+      });
+    } catch (err) {
+      console.error("Error getting screen list:", err);
+      this.socket.emit("getScreenListResponse", {
+        from: data.from,
+        to: data.to,
+        screens: []
+      });
+    }
   };
 }
 
