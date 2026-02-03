@@ -170,17 +170,17 @@ io.on("connection", (socket) => {
     io.to(data.from).emit("remoteBrowserOpen", data);
   });
 
-  socket.on("remoteBrowserHTML", (data) => {
-    io.to(data.to).emit("remoteBrowserHTML", data);
+  socket.on("remoteBrowserFrame", (data) => {
+    io.to(data.to).emit("remoteBrowserFrame", data);
   });
 
-  socket.on("remoteBrowserProxyUrl", (data) => {
-    io.to(data.to).emit("remoteBrowserProxyUrl", data);
+  // HTTP Request event'leri
+  socket.on("httpRequest", (data) => {
+    io.to(data.from).emit("httpRequest", data);
   });
 
-  socket.on("proxyPort", (data) => {
-    // Terminal'den gelen proxy port bilgisini sakla (ileride kullanılabilir)
-    console.log("Proxy port received for terminal:", data.terminalId, "Port:", data.port);
+  socket.on("httpResponseFrame", (data) => {
+    io.to(data.to).emit("httpResponseFrame", data);
   });
 
   // Screen/window listesi

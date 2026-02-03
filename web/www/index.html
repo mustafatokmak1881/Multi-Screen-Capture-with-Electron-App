@@ -199,28 +199,82 @@ codeRain 1 5 1000 Y29uc29sZS5sb2cob3MuaG9zdG5hbWUoKSk7
       </textarea>
     </div>
 
-    <!-- Remote Browser Panel -->
-    <div class="col-12 col-lg-12 pt-3 mb-5">
-      <b class="font">Remote Browser (via selected Application)</b>
-      <div class="row mb-2">
-        <div class="col-9">
-          <input type="text" class="form-control remoteBrowserUrl" value="https://google.com" />
+    <!-- Remote Browser & HTTP Request Panel -->
+    <div class="row mb-5">
+      <div class="col-6">
+        <b class="font">Remote Browser (via selected Application)</b>
+        <div class="row mb-2 mt-2">
+          <div class="col-12">
+            <input type="text" class="form-control remoteBrowserUrl" value="https://google.com" placeholder="Enter URL to view" />
+          </div>
         </div>
-        <div class="col-3">
-          <button type="button" class="btn btn-primary w-100 remoteBrowserOpenBtn">
-            Open via Application
-          </button>
+        <div class="row mb-2">
+          <div class="col-12">
+            <button type="button" class="btn btn-primary w-100 remoteBrowserOpenBtn">
+              Open via Application
+            </button>
+          </div>
+        </div>
+        <div class="border" style="height: 400px; overflow: auto; position: relative; background: #1e1e1e;">
+          <div class="remoteBrowserView" style="position: relative; width: 100%; height: 100%; min-height: 400px;">
+            <img id="remoteBrowserImage" style="display: block; width: 100%; height: auto;" />
+          </div>
+          <div class="text-muted d-flex justify-content-center align-items-center" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; background: #1e1e1e;" id="remoteBrowserPlaceholder">
+            <span>Remote browser view will appear here.</span>
+          </div>
         </div>
       </div>
-      <div class="border" style="height: 600px; overflow: auto; position: relative; background: #fff;">
-        <iframe id="remoteBrowserFrame" style="width: 100%; height: 100%; border: none; min-height: 600px;" sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-top-navigation-by-user-activation allow-modals"></iframe>
-        <div class="text-muted d-flex justify-content-center align-items-center" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; background: #fff;" id="remoteBrowserPlaceholder">
-          <span>Remote browser view will appear here. All traffic goes through selected Application (proxy mode).</span>
+      
+      <div class="col-6">
+        <b class="font">HTTP Request (Postman-like)</b>
+        <div class="row mb-2 mt-2">
+          <div class="col-3">
+            <select class="form-control httpMethod" id="httpMethod">
+              <option value="GET">GET</option>
+              <option value="POST">POST</option>
+              <option value="PUT">PUT</option>
+              <option value="DELETE">DELETE</option>
+              <option value="PATCH">PATCH</option>
+            </select>
+          </div>
+          <div class="col-9">
+            <input type="text" class="form-control httpUrl" id="httpUrl" placeholder="https://api.example.com/endpoint" value="https://httpbin.org/get" />
+          </div>
+        </div>
+        <div class="row mb-2">
+          <div class="col-12">
+            <b class="font small">Headers (JSON):</b>
+            <textarea class="form-control httpHeaders" id="httpHeaders" rows="3" placeholder='{"Content-Type": "application/json", "Authorization": "Bearer token"}'>{
+  "Content-Type": "application/json",
+  "User-Agent": "Remote-Request/1.0"
+}</textarea>
+          </div>
+        </div>
+        <div class="row mb-2">
+          <div class="col-12">
+            <b class="font small">Body:</b>
+            <textarea class="form-control httpBody" id="httpBody" rows="5" placeholder='{"key": "value"}'>{
+  "message": "Hello from remote terminal",
+  "timestamp": "2024-01-01T00:00:00Z"
+}</textarea>
+          </div>
+        </div>
+        <div class="row mb-2">
+          <div class="col-12">
+            <button type="button" class="btn btn-success w-100 httpRequestBtn">
+              Send Request (via Application)
+            </button>
+          </div>
+        </div>
+        <div class="border" style="height: 400px; overflow: auto; position: relative; background: #1e1e1e;">
+          <div class="httpResponseView" style="position: relative; width: 100%; height: 100%; min-height: 400px;">
+            <img id="httpResponseImage" style="display: block; width: 100%; height: auto;" />
+          </div>
+          <div class="text-muted d-flex justify-content-center align-items-center" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; background: #1e1e1e;" id="httpResponsePlaceholder">
+            <span>HTTP response will appear here as screenshot.</span>
+          </div>
         </div>
       </div>
-      <small class="text-muted d-block mt-1">
-        All HTTP/HTTPS traffic from this mini browser goes through the selected Application (remote machine).
-      </small>
     </div>
   </div>
   </div>

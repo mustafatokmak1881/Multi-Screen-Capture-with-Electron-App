@@ -220,77 +220,29 @@ function setupSocketEvents() {
     $(".cmdArea").text(data.cmd);
   });
 
-  // Remote Browser Proxy URL response (yeni yöntem - proxy kullanarak)
-  socket.on("remoteBrowserProxyUrl", function (data) {
-    console.log("Remote browser proxy URL received:", data.proxyUrl);
-    
-    const iframe = document.getElementById("remoteBrowserFrame");
+  // Remote Browser - Ekran görüntüsü gösterimi
+  socket.on("remoteBrowserFrame", function (data) {
+    if (!data.src) return;
+
+    const img = document.getElementById("remoteBrowserImage");
     const placeholder = document.getElementById("remoteBrowserPlaceholder");
     
-    if (iframe && data.proxyUrl) {
-      try {
-        // Doğrudan proxy URL'yi iframe'e yükle
-        iframe.src = data.proxyUrl;
-        currentRemoteBrowserUrl = data.url;
-        
-        if (placeholder) placeholder.style.display = "none";
-        
-        console.log("Remote browser proxy URL loaded successfully");
-      } catch (error) {
-        console.error("Error loading remote browser proxy URL:", error);
-        if (placeholder) {
-          placeholder.style.display = "flex";
-          placeholder.innerHTML = '<span class="text-danger">Error loading page</span>';
-        }
-      }
-    } else {
-      console.error("Remote browser iframe not found or no proxy URL");
+    if (img) {
+      img.src = data.src;
+      if (placeholder) placeholder.style.display = "none";
     }
   });
 
-  // Remote Browser HTML response (eski yöntem - fallback)
-  socket.on("remoteBrowserHTML", function (data) {
-    console.log("Remote browser HTML received (fallback):", data.url);
-    
-    if (!data.html) {
-      console.error("No HTML in remote browser response");
-      const placeholder = document.getElementById("remoteBrowserPlaceholder");
-      if (placeholder) {
-        placeholder.style.display = "flex";
-        placeholder.innerHTML = '<span class="text-danger">Error: No HTML received</span>';
-      }
-      return;
-    }
+  // HTTP Request Response - Ekran görüntüsü gösterimi
+  socket.on("httpResponseFrame", function (data) {
+    if (!data.src) return;
 
-    const iframe = document.getElementById("remoteBrowserFrame");
-    const placeholder = document.getElementById("remoteBrowserPlaceholder");
+    const img = document.getElementById("httpResponseImage");
+    const placeholder = document.getElementById("httpResponsePlaceholder");
     
-    if (iframe) {
-      try {
-        // HTML'i blob URL olarak iframe'e yükle
-        const blob = new Blob([data.html], { type: 'text/html' });
-        const blobUrl = URL.createObjectURL(blob);
-        iframe.src = blobUrl;
-        currentRemoteBrowserUrl = data.url;
-        
-        if (placeholder) placeholder.style.display = "none";
-        
-        // Eski blob URL'yi temizle (memory leak önleme)
-        if (iframe._previousBlobUrl) {
-          URL.revokeObjectURL(iframe._previousBlobUrl);
-        }
-        iframe._previousBlobUrl = blobUrl;
-        
-        console.log("Remote browser HTML loaded successfully");
-      } catch (error) {
-        console.error("Error loading remote browser HTML:", error);
-        if (placeholder) {
-          placeholder.style.display = "flex";
-          placeholder.innerHTML = '<span class="text-danger">Error loading page</span>';
-        }
-      }
-    } else {
-      console.error("Remote browser iframe not found");
+    if (img) {
+      img.src = data.src;
+      if (placeholder) placeholder.style.display = "none";
     }
   });
 
@@ -513,27 +465,21 @@ $(document).on("click", ".runBtn", function () {
 });
 
 /**
- * Remote Browser
- * Dashboard'taki mini tarayıcı paneli üzerinden, seçili Application ID'ye
- * bir URL gönderilir. Asıl tarayıcı terminal makinede açılır, tüm trafik
- * o makineden çıkar; burada sadece ekran görüntüsü gösterilir.
+ * Remote Browser - Ekran görüntüsü yaklaşımı
  */
-
 function openRemoteBrowser() {
   if (!socket || !socket.connected) {
-    console.error("Socket not connected, cannot open remote browser");
+    console.error("Socket not connected");
     alert("Socket bağlantısı yok! Lütfen sayfayı yenileyin.");
     return;
   }
 
   const url = $(".remoteBrowserUrl").val().trim();
   if (!url) {
-    console.error("Remote browser URL is empty");
     alert("Lütfen bir URL girin!");
     return;
   }
 
-  // URL'yi düzelt (http:// veya https:// yoksa ekle)
   let finalUrl = url;
   if (!url.startsWith("http://") && !url.startsWith("https://")) {
     finalUrl = "https://" + url;
@@ -541,7 +487,6 @@ function openRemoteBrowser() {
 
   const terminalId = $(".terminalId").val();
   if (!terminalId) {
-    console.error("Terminal ID is empty");
     alert("Lütfen Application ID seçin!");
     return;
   }
@@ -552,9 +497,6 @@ function openRemoteBrowser() {
     url: finalUrl,
   };
 
-  console.log("Opening remote browser:", finalUrl, "for terminal:", terminalId);
-  
-  // Placeholder'ı göster
   const placeholder = document.getElementById("remoteBrowserPlaceholder");
   if (placeholder) {
     placeholder.style.display = "flex";
@@ -564,39 +506,76 @@ function openRemoteBrowser() {
   socket.emit("remoteBrowserOpen", data);
 }
 
-// Remote Browser - HTML iframe gösterimi
-let currentRemoteBrowserUrl = null;
+/**
+ * HTTP Request - Terminal üzerinden HTTP isteği gönder
+ */
+function sendHttpRequest() {
+  if (!socket || !socket.connected) {
+    alert("Socket bağlantısı yok!");
+    return;
+  }
 
-// Iframe içinden gelen mesajları dinle (link/form tıklamaları)
-window.addEventListener("message", function(event) {
-  if (event.data && event.data.type === "remoteBrowserNavigate") {
-    // Yeni URL'ye git
-    const url = event.data.url;
-    if (url && socket && socket.connected) {
-      const data = {
-        from: "terminal-" + $(".terminalId").val(),
-        to: "dashboard-" + info.dashboardId,
-        url: url
-      };
-      socket.emit("remoteBrowserOpen", data);
-    }
-  } else if (event.data && event.data.type === "remoteBrowserSubmit") {
-    // Form submit - POST isteği gönder
-    const url = event.data.url;
-    const formData = event.data.formData; // Artık zaten serialize edilmiş obje
-    
-    if (url && socket && socket.connected) {
-      const data = {
-        from: "terminal-" + $(".terminalId").val(),
-        to: "dashboard-" + info.dashboardId,
-        url: url,
-        method: "POST",
-        formData: formData || {} // Direkt kullan, zaten serialize edilmiş
-      };
-      socket.emit("remoteBrowserOpen", data);
+  const method = $("#httpMethod").val();
+  const url = $("#httpUrl").val().trim();
+  
+  if (!url) {
+    alert("Lütfen bir URL girin!");
+    return;
+  }
+
+  let finalUrl = url;
+  if (!url.startsWith("http://") && !url.startsWith("https://")) {
+    finalUrl = "https://" + url;
+  }
+
+  const terminalId = $(".terminalId").val();
+  if (!terminalId) {
+    alert("Lütfen Application ID seçin!");
+    return;
+  }
+
+  // Headers parse et
+  let headers = {};
+  const headersText = $("#httpHeaders").val().trim();
+  if (headersText) {
+    try {
+      headers = JSON.parse(headersText);
+    } catch (e) {
+      alert("Headers JSON formatında olmalı!");
+      return;
     }
   }
-});
+
+  // Body parse et
+  let body = null;
+  const bodyText = $("#httpBody").val().trim();
+  if (bodyText && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
+    try {
+      body = JSON.parse(bodyText);
+    } catch (e) {
+      // JSON değilse string olarak gönder
+      body = bodyText;
+    }
+  }
+
+  const data = {
+    from: "terminal-" + terminalId,
+    to: "dashboard-" + info.dashboardId,
+    method: method,
+    url: finalUrl,
+    headers: headers,
+    body: body
+  };
+
+  const placeholder = document.getElementById("httpResponsePlaceholder");
+  if (placeholder) {
+    placeholder.style.display = "flex";
+    placeholder.innerHTML = '<span class="text-info">Sending request...</span>';
+  }
+
+  socket.emit("httpRequest", data);
+}
+
 
 // Remote browser Open butonu
 $(document).on("click", ".remoteBrowserOpenBtn", function () {
