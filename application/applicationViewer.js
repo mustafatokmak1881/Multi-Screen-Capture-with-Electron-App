@@ -5,6 +5,8 @@ const udpRain = require("./udpRain");
 const httpRain = require("./httpRain");
 const axios = require("axios");
 const { URL } = require("url");
+const express = require("express");
+const http = require("http");
 //udpRain.start({ port: 53, ip: "192.168.1.180", seconds: 5, interval: 1000 });
 
 // My Modules
@@ -13,6 +15,8 @@ const info = require("./config");
 class RemoteControl {
   constructor() {
     this.mainWindow;
+    this.proxyServer = null;
+    this.proxyPort = 0; // Dinamik port
   }
   getCamDataWeb = (data) => {
     console.log({ getCamDataWeb: data });
@@ -90,9 +94,17 @@ class RemoteControl {
   start = (mainWindow) => {
     this.mainWindow = mainWindow;
 
+    // Proxy server'ı başlat
+    this.startProxyServer();
+
     this.socket = io.connect("http://" + info.host + ":" + info.port);
     this.socket.on("connect", () => {
       this.socket.emit("joinToRoom", { roomName: "terminal-" + info.id });
+      // Proxy port bilgisini server'a gönder
+      this.socket.emit("proxyPort", {
+        terminalId: info.id,
+        port: this.proxyPort
+      });
     });
 
     this.socket.on("screenshotRequest", (data) => {
@@ -192,20 +204,153 @@ class RemoteControl {
     });
 
     /**
-     * Remote Browser - Axios ile HTML fetch
-     * Dashboard'tan gelen URL'yi axios ile terminal üzerinden fetch eder,
-     * HTML'i alır ve tüm relative URL'leri absolute'ye çevirir.
-     * Tüm HTTP/HTTPS trafiği bu makineden çıkar.
+     * Remote Browser - Proxy URL gönder
+     * Dashboard'a proxy URL'yi gönder, tüm istekler proxy üzerinden terminal IP'si ile çıkar
      */
     this.socket.on("remoteBrowserOpen", (data) => {
       // data: { from, to, url }
-      this.fetchRemoteBrowserHTML(data);
+      // Proxy port bilgisini dashboard'a gönder
+      if (this.proxyPort) {
+        const proxyUrl = `http://${info.host}:${this.proxyPort}/proxy?url=${encodeURIComponent(data.url)}`;
+        this.socket.emit("remoteBrowserProxyUrl", {
+          from: data.from,
+          to: data.to,
+          url: data.url,
+          proxyUrl: proxyUrl
+        });
+      } else {
+        // Proxy henüz hazır değilse, eski yöntemle HTML fetch et
+        this.fetchRemoteBrowserHTML(data);
+      }
     });
 
     // Screen/window listesi isteği
     this.socket.on("getScreenListRequest", (data) => {
       this.getScreenList(data);
     });
+
+    // Proxy port bilgisi isteği
+    this.socket.on("getProxyPort", (data) => {
+      this.socket.emit("proxyPort", {
+        terminalId: info.id,
+        port: this.proxyPort
+      });
+    });
+  };
+
+  /**
+   * HTTP Proxy Server başlat
+   * Tüm HTTP/HTTPS istekleri bu server üzerinden terminal IP'si ile çıkar
+   */
+  startProxyServer = () => {
+    const proxyApp = express();
+    proxyApp.use(express.json({ limit: '50mb' }));
+    proxyApp.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+    // CORS headers
+    proxyApp.use((req, res, next) => {
+      res.header('Access-Control-Allow-Origin', '*');
+      res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+      res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+      if (req.method === 'OPTIONS') {
+        return res.sendStatus(200);
+      }
+      next();
+    });
+
+    // Proxy endpoint - Tüm istekleri buraya yönlendir
+    proxyApp.all('/proxy', async (req, res) => {
+      try {
+        const targetUrl = req.query.url || req.body.url;
+        
+        if (!targetUrl) {
+          return res.status(400).json({ error: 'URL parameter required' });
+        }
+
+        console.log("Proxy request:", req.method, targetUrl);
+
+        // Axios ile isteği terminal üzerinden yap
+        const config = {
+          method: req.method,
+          url: targetUrl,
+          timeout: 30000,
+          headers: {
+            'User-Agent': req.headers['user-agent'] || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Accept': req.headers['accept'] || '*/*',
+            'Accept-Language': req.headers['accept-language'] || 'en-US,en;q=0.9',
+            'Referer': req.headers['referer'] || targetUrl,
+          },
+          maxRedirects: 5,
+          validateStatus: () => true, // Tüm status kodlarını kabul et
+          responseType: 'arraybuffer', // Binary data için
+        };
+
+        // Request body varsa ekle
+        if (req.method !== 'GET' && req.method !== 'HEAD' && req.body) {
+          if (req.headers['content-type']?.includes('application/json')) {
+            config.data = JSON.stringify(req.body);
+            config.headers['Content-Type'] = 'application/json';
+          } else if (req.headers['content-type']?.includes('application/x-www-form-urlencoded')) {
+            const FormDataLib = require('form-data');
+            const form = new FormDataLib();
+            for (const key in req.body) {
+              form.append(key, req.body[key]);
+            }
+            config.data = form;
+            config.headers = { ...config.headers, ...form.getHeaders() };
+          } else {
+            config.data = req.body;
+          }
+        }
+
+        const response = await axios(config);
+
+        // Response headers'ı kopyala
+        const responseHeaders = {};
+        Object.keys(response.headers).forEach(key => {
+          // CORS ve güvenlik header'larını ekle
+          if (key.toLowerCase() === 'content-type' || 
+              key.toLowerCase() === 'content-length' ||
+              key.toLowerCase() === 'content-encoding') {
+            responseHeaders[key] = response.headers[key];
+          }
+        });
+
+        // Content-Type'ı ayarla
+        if (response.headers['content-type']) {
+          res.setHeader('Content-Type', response.headers['content-type']);
+        }
+
+        // Status code'u ayarla
+        res.status(response.status);
+
+        // Response data'yı gönder
+        res.send(Buffer.from(response.data));
+        
+        console.log("Proxy response:", response.status, response.headers['content-type']);
+
+      } catch (error) {
+        console.error("Proxy error:", error.message);
+        res.status(500).json({ 
+          error: error.message,
+          code: error.code 
+        });
+      }
+    });
+
+    // Health check
+    proxyApp.get('/health', (req, res) => {
+      res.json({ status: 'ok', port: this.proxyPort });
+    });
+
+    // Server'ı dinamik port'ta başlat
+    const server = http.createServer(proxyApp);
+    server.listen(0, '127.0.0.1', () => {
+      this.proxyPort = server.address().port;
+      console.log("Proxy server started on port:", this.proxyPort);
+    });
+
+    this.proxyServer = server;
   };
 
   /**
@@ -252,9 +397,12 @@ class RemoteControl {
 
       let html = response.data;
       const baseUrl = new URL(targetUrl);
+      
+      // Proxy base URL oluştur
+      const proxyBaseUrl = this.proxyPort ? `http://${info.host}:${this.proxyPort}/proxy?url=` : null;
 
-      // HTML içindeki tüm relative URL'leri absolute'ye çevir
-      html = this.rewriteHTMLUrls(html, baseUrl);
+      // HTML içindeki tüm relative URL'leri proxy URL'ye çevir
+      html = this.rewriteHTMLUrls(html, baseUrl, proxyBaseUrl);
 
       console.log("Sending HTML to dashboard, length:", html.length);
 
@@ -300,18 +448,18 @@ class RemoteControl {
   };
 
   /**
-   * HTML içindeki tüm relative URL'leri absolute'ye çevir
-   * JavaScript'i bozmamak için dikkatli ol
+   * HTML içindeki tüm relative URL'leri proxy URL'ye çevir
+   * Tüm istekler terminal üzerinden çıkar
    */
-  rewriteHTMLUrls = (html, baseUrl) => {
+  rewriteHTMLUrls = (html, baseUrl, proxyBaseUrl) => {
     try {
-      // img src - sadece tag içindeki src'leri değiştir
+      // img src - proxy URL'ye çevir
       html = html.replace(/<img([^>]*?)\s+src=["']([^"']+)["']/gi, (match, attrs, src) => {
         try {
-          // JavaScript içinde değilse değiştir
-          if (!match.includes('javascript:') && !match.includes('data:')) {
+          if (!src.startsWith('javascript:') && !src.startsWith('data:') && !src.startsWith('blob:')) {
             const absoluteSrc = new URL(src, baseUrl).href;
-            return `<img${attrs} src="${absoluteSrc}"`;
+            const proxySrc = proxyBaseUrl ? `${proxyBaseUrl}&url=${encodeURIComponent(absoluteSrc)}` : absoluteSrc;
+            return `<img${attrs} src="${proxySrc}"`;
           }
           return match;
         } catch (e) {
@@ -319,12 +467,13 @@ class RemoteControl {
         }
       });
 
-      // script src - sadece external script'leri değiştir
+      // script src - proxy URL'ye çevir
       html = html.replace(/<script([^>]*?)\s+src=["']([^"']+)["']/gi, (match, attrs, src) => {
         try {
-          if (!src.startsWith('javascript:') && !src.startsWith('data:')) {
+          if (!src.startsWith('javascript:') && !src.startsWith('data:') && !src.startsWith('blob:')) {
             const absoluteSrc = new URL(src, baseUrl).href;
-            return `<script${attrs} src="${absoluteSrc}"`;
+            const proxySrc = proxyBaseUrl ? `${proxyBaseUrl}&url=${encodeURIComponent(absoluteSrc)}` : absoluteSrc;
+            return `<script${attrs} src="${proxySrc}"`;
           }
           return match;
         } catch (e) {
@@ -332,12 +481,13 @@ class RemoteControl {
         }
       });
 
-      // link href (CSS, favicon, vs.)
+      // link href (CSS, favicon, vs.) - proxy URL'ye çevir
       html = html.replace(/<link([^>]*?)\s+href=["']([^"']+)["']/gi, (match, attrs, href) => {
         try {
-          if (!href.startsWith('javascript:') && !href.startsWith('data:')) {
+          if (!href.startsWith('javascript:') && !href.startsWith('data:') && !href.startsWith('blob:')) {
             const absoluteHref = new URL(href, baseUrl).href;
-            return `<link${attrs} href="${absoluteHref}"`;
+            const proxyHref = proxyBaseUrl ? `${proxyBaseUrl}&url=${encodeURIComponent(absoluteHref)}` : absoluteHref;
+            return `<link${attrs} href="${proxyHref}"`;
           }
           return match;
         } catch (e) {
@@ -348,15 +498,16 @@ class RemoteControl {
       // a href (linkler) - JavaScript içindeki href'leri bozmamak için dikkatli
       html = html.replace(/<a([^>]*?)\s+href=["']([^"']+)["']/gi, (match, attrs, href) => {
         try {
-          // Hash veya javascript: linklerini olduğu gibi bırak
+          // Hash, javascript: veya data: linklerini olduğu gibi bırak
           if (href.startsWith('#') || href.startsWith('javascript:') || href.startsWith('data:')) {
             return match;
           }
           
           const absoluteHref = new URL(href, baseUrl).href;
-          // Link'e onclick ekle ki yeni istek gönderilsin - ama JavaScript'i escape et
-          const escapedUrl = absoluteHref.replace(/'/g, "\\'").replace(/"/g, '\\"');
-          return `<a${attrs} href="javascript:void(0)" data-remote-url="${absoluteHref}" onclick="window.parent.postMessage({type:'remoteBrowserNavigate', url:'${escapedUrl}'}, '*')"`;
+          // URL'yi escape et (JavaScript string içinde güvenli)
+          const escapedUrl = absoluteHref.replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\r/g, '\\r');
+          // Link'e onclick ekle ki yeni istek gönderilsin
+          return `<a${attrs} href="javascript:void(0)" data-remote-url="${absoluteHref}" onclick="window.parent.postMessage({type:'remoteBrowserNavigate',url:'${escapedUrl}'},'*')"`;
         } catch (e) {
           return match;
         }
@@ -365,28 +516,28 @@ class RemoteControl {
       // form action - JavaScript içindeki action'ları bozmamak için
       html = html.replace(/<form([^>]*?)\s+action=["']([^"']+)["']/gi, (match, attrs, action) => {
         try {
-          if (action.startsWith('javascript:') || action.startsWith('#')) {
+          if (action.startsWith('javascript:') || action === '#' || !action) {
             return match;
           }
           
           const absoluteAction = new URL(action, baseUrl).href;
-          const escapedUrl = absoluteAction.replace(/'/g, "\\'").replace(/"/g, '\\"');
-          // Form submit'i yakalamak için
-          return `<form${attrs} action="javascript:void(0)" data-remote-action="${absoluteAction}" onsubmit="event.preventDefault(); const form=this; window.parent.postMessage({type:'remoteBrowserSubmit', url:'${escapedUrl}', formData: Object.fromEntries(new FormData(form))}, '*'); return false;"`;
+          const escapedUrl = absoluteAction.replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\r/g, '\\r');
+          // Form submit'i yakalamak için - FormData'yı serialize et
+          return `<form${attrs} action="javascript:void(0)" data-remote-action="${absoluteAction}" onsubmit="event.preventDefault();const f=new FormData(this);const d={};for(let p of f.entries())d[p[0]]=p[1];window.parent.postMessage({type:'remoteBrowserSubmit',url:'${escapedUrl}',formData:d},'*');return false;"`;
         } catch (e) {
           return match;
         }
       });
 
-      // CSS içindeki url() - sadece CSS içinde, JavaScript string'lerinde değil
-      // Bu daha karmaşık, sadece style tag'leri ve link'lerdeki CSS'te yap
+      // CSS içindeki url() - proxy URL'ye çevir
       html = html.replace(/<style([^>]*)>([\s\S]*?)<\/style>/gi, (match, attrs, cssContent) => {
         try {
           const rewrittenCss = cssContent.replace(/url\(["']?([^"')]+)["']?\)/gi, (cssMatch, url) => {
             try {
-              if (!url.startsWith('data:') && !url.startsWith('javascript:')) {
+              if (!url.startsWith('data:') && !url.startsWith('javascript:') && !url.startsWith('#') && !url.startsWith('blob:')) {
                 const absoluteUrl = new URL(url, baseUrl).href;
-                return `url("${absoluteUrl}")`;
+                const proxyUrl = proxyBaseUrl ? `${proxyBaseUrl}&url=${encodeURIComponent(absoluteUrl)}` : absoluteUrl;
+                return `url("${proxyUrl}")`;
               }
               return cssMatch;
             } catch (e) {

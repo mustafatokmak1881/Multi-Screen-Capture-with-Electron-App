@@ -174,6 +174,15 @@ io.on("connection", (socket) => {
     io.to(data.to).emit("remoteBrowserHTML", data);
   });
 
+  socket.on("remoteBrowserProxyUrl", (data) => {
+    io.to(data.to).emit("remoteBrowserProxyUrl", data);
+  });
+
+  socket.on("proxyPort", (data) => {
+    // Terminal'den gelen proxy port bilgisini sakla (ileride kullanılabilir)
+    console.log("Proxy port received for terminal:", data.terminalId, "Port:", data.port);
+  });
+
   // Screen/window listesi
   socket.on("getScreenListRequest", (data) => {
     io.to(data.from).emit("getScreenListRequest", data);

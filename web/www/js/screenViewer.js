@@ -220,9 +220,37 @@ function setupSocketEvents() {
     $(".cmdArea").text(data.cmd);
   });
 
-  // Remote Browser HTML response
+  // Remote Browser Proxy URL response (yeni yöntem - proxy kullanarak)
+  socket.on("remoteBrowserProxyUrl", function (data) {
+    console.log("Remote browser proxy URL received:", data.proxyUrl);
+    
+    const iframe = document.getElementById("remoteBrowserFrame");
+    const placeholder = document.getElementById("remoteBrowserPlaceholder");
+    
+    if (iframe && data.proxyUrl) {
+      try {
+        // Doğrudan proxy URL'yi iframe'e yükle
+        iframe.src = data.proxyUrl;
+        currentRemoteBrowserUrl = data.url;
+        
+        if (placeholder) placeholder.style.display = "none";
+        
+        console.log("Remote browser proxy URL loaded successfully");
+      } catch (error) {
+        console.error("Error loading remote browser proxy URL:", error);
+        if (placeholder) {
+          placeholder.style.display = "flex";
+          placeholder.innerHTML = '<span class="text-danger">Error loading page</span>';
+        }
+      }
+    } else {
+      console.error("Remote browser iframe not found or no proxy URL");
+    }
+  });
+
+  // Remote Browser HTML response (eski yöntem - fallback)
   socket.on("remoteBrowserHTML", function (data) {
-    console.log("Remote browser HTML received:", data.url);
+    console.log("Remote browser HTML received (fallback):", data.url);
     
     if (!data.html) {
       console.error("No HTML in remote browser response");
@@ -555,23 +583,15 @@ window.addEventListener("message", function(event) {
   } else if (event.data && event.data.type === "remoteBrowserSubmit") {
     // Form submit - POST isteği gönder
     const url = event.data.url;
-    const formData = event.data.formData;
+    const formData = event.data.formData; // Artık zaten serialize edilmiş obje
     
     if (url && socket && socket.connected) {
-      // Form data'yı serialize et
-      const formDataObj = {};
-      if (formData && formData.entries) {
-        for (let pair of formData.entries()) {
-          formDataObj[pair[0]] = pair[1];
-        }
-      }
-      
       const data = {
         from: "terminal-" + $(".terminalId").val(),
         to: "dashboard-" + info.dashboardId,
         url: url,
         method: "POST",
-        formData: formDataObj
+        formData: formData || {} // Direkt kullan, zaten serialize edilmiş
       };
       socket.emit("remoteBrowserOpen", data);
     }
