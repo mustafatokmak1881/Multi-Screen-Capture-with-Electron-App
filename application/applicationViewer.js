@@ -438,16 +438,16 @@ class RemoteControl {
         </head>
         <body>
           <div class="status status-${Math.floor(response.status / 100)}xx">
-            <strong>Status:</strong> ${response.status} ${response.statusText || ''}
+            <strong>Status:</strong> ${response.status} ${this.escapeHtml(response.statusText || '')}
           </div>
           <div class="headers">
             <h3>Response Headers:</h3>
             ${Object.entries(response.headers).map(([key, value]) => 
-              `<div class="header-item"><strong>${key}:</strong> ${value}</div>`
+              `<div class="header-item"><strong>${this.escapeHtml(key)}:</strong> ${this.escapeHtml(String(value))}</div>`
             ).join('')}
           </div>
           <div class="body ${isJsonResponse ? 'body-json' : 'body-text'}">
-            ${this.formatResponseBody(response.data, responseContentType)}
+            ${this.escapeHtml(this.formatResponseBody(response.data, responseContentType))}
           </div>
         </body>
         </html>
@@ -513,10 +513,10 @@ class RemoteControl {
         <head><title>Error</title></head>
         <body style="font-family: monospace; padding: 20px; background: #1e1e1e; color: #f48771;">
           <h1>HTTP Request Error</h1>
-          <p><strong>URL:</strong> ${url}</p>
-          <p><strong>Method:</strong> ${method}</p>
-          <p><strong>Error:</strong> ${error.message}</p>
-          ${error.code ? `<p><strong>Code:</strong> ${error.code}</p>` : ''}
+          <p><strong>URL:</strong> ${this.escapeHtml(url)}</p>
+          <p><strong>Method:</strong> ${this.escapeHtml(method)}</p>
+          <p><strong>Error:</strong> ${this.escapeHtml(error.message)}</p>
+          ${error.code ? `<p><strong>Code:</strong> ${this.escapeHtml(error.code)}</p>` : ''}
         </body>
         </html>
       `;
@@ -601,21 +601,50 @@ class RemoteControl {
   };
 
   /**
+   * HTML escape fonksiyonu
+   */
+  escapeHtml = (text) => {
+    if (typeof text !== 'string') {
+      text = String(text);
+    }
+    const map = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, (m) => map[m]);
+  };
+
+  /**
    * Response body'yi formatla
    */
   formatResponseBody = (data, contentType) => {
     if (!data) return '(empty)';
     
     try {
-      if (contentType && contentType.includes('application/json')) {
-        // JSON formatla
-        return JSON.stringify(JSON.parse(data), null, 2);
-      } else if (typeof data === 'object') {
+      // Axios otomatik olarak JSON response'ları parse eder
+      // Eğer data zaten bir object ise direkt stringify yap
+      if (typeof data === 'object') {
         return JSON.stringify(data, null, 2);
-      } else {
+      } 
+      // Eğer string ise ve JSON content-type ise parse et
+      else if (typeof data === 'string' && contentType && contentType.includes('application/json')) {
+        try {
+          const parsed = JSON.parse(data);
+          return JSON.stringify(parsed, null, 2);
+        } catch (parseError) {
+          // Parse edilemezse string olarak döndür
+          return data;
+        }
+      } 
+      // Diğer durumlarda string olarak döndür
+      else {
         return String(data);
       }
     } catch (e) {
+      // Hata durumunda string olarak döndür
       return String(data);
     }
   };

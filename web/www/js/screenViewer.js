@@ -315,7 +315,20 @@ function setupSocketEvents() {
 
   // HTTP Request Response - Ekran görüntüsü gösterimi
   socket.on("httpResponseFrame", function (data) {
-    console.log("📥 [WEB] httpResponseFrame received, src length:", data.src ? data.src.length : 0, "status:", data.status);
+    console.log("📥 [WEB] httpResponseFrame received");
+    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    console.log("📋 HTTP Response Data:", {
+      method: data.method,
+      url: data.url,
+      status: data.status,
+      width: data.width,
+      height: data.height,
+      srcLength: data.src ? data.src.length : 0,
+      error: data.error || null
+    });
+    console.log("📊 Full Response Object:", data);
+    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    
     if (!data.src) {
       console.error("❌ [WEB] httpResponseFrame has no src!");
       const placeholder = document.getElementById("httpResponsePlaceholder");
@@ -718,9 +731,23 @@ function sendHttpRequest() {
     body: body
   };
 
-  console.log("📤 [WEB] Emitting httpRequest:", data.method, data.url);
-  console.log("📤 [WEB] Socket connected:", socket.connected, "Socket ID:", socket.id);
-  console.log("📤 [WEB] Target room:", data.from);
+  console.log("📤 [WEB] Sending HTTP Request");
+  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+  console.log("📋 HTTP Request Data:", {
+    method: data.method,
+    url: data.url,
+    headers: data.headers,
+    body: data.body,
+    from: data.from,
+    to: data.to
+  });
+  console.log("📊 Full Request Object:", data);
+  console.log("🔌 Socket Info:", {
+    connected: socket.connected,
+    socketId: socket.id,
+    targetRoom: data.from
+  });
+  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
   const placeholder = document.getElementById("httpResponsePlaceholder");
   if (placeholder) {
