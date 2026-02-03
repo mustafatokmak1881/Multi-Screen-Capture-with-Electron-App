@@ -842,12 +842,10 @@ function updateApplicationIdSelect(roomListText) {
       try {
         const trimmed = line.trim();
         if (trimmed && trimmed.startsWith('terminal-')) {
-          const match = trimmed.match(/terminal-(\d+)/);
-          if (match && match[1]) {
-            const id = match[1];
-            if (id && !applicationIds.includes(id)) {
-              applicationIds.push(id);
-            }
+          // terminal- prefix'ini kaldır, geri kalanını al
+          const id = trimmed.replace(/^terminal-/, '');
+          if (id && !applicationIds.includes(id)) {
+            applicationIds.push(id);
           }
         }
       } catch (e) {
@@ -855,13 +853,8 @@ function updateApplicationIdSelect(roomListText) {
       }
     });
     
-    applicationIds.sort((a, b) => {
-      try {
-        return parseInt(a) - parseInt(b);
-      } catch (e) {
-        return 0;
-      }
-    });
+    // Alfabetik sırala
+    applicationIds.sort();
     
     applicationIds.forEach(id => {
       try {
