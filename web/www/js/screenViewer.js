@@ -259,6 +259,11 @@ function setupSocketEvents() {
     console.log("📥 [WEB] remoteBrowserFrame received, src length:", data.src ? data.src.length : 0);
     if (!data.src) {
       console.error("❌ [WEB] remoteBrowserFrame has no src!");
+      const placeholder = document.getElementById("remoteBrowserPlaceholder");
+      if (placeholder) {
+        placeholder.style.display = "flex";
+        placeholder.innerHTML = '<span class="text-danger">No image data received</span>';
+      }
       return;
     }
 
@@ -266,11 +271,45 @@ function setupSocketEvents() {
     const placeholder = document.getElementById("remoteBrowserPlaceholder");
     
     if (img) {
+      // Resim yüklenene kadar placeholder'ı göster
+      img.onload = function() {
+        if (placeholder) {
+          placeholder.style.display = "none";
+          placeholder.style.zIndex = "-1";
+        }
+        img.style.display = "block";
+        console.log("✅ [WEB] remoteBrowserFrame displayed");
+      };
+      
+      img.onerror = function() {
+        if (placeholder) {
+          placeholder.style.display = "flex";
+          placeholder.style.zIndex = "2";
+          placeholder.innerHTML = '<span class="text-danger">Failed to load image</span>';
+        }
+        img.style.display = "none";
+        console.error("❌ [WEB] Failed to load remoteBrowserImage");
+      };
+      
+      // Resmi ayarla
       img.src = data.src;
-      if (placeholder) placeholder.style.display = "none";
-      console.log("✅ [WEB] remoteBrowserFrame displayed");
+      
+      // Cache'den geliyorsa onload tetiklenmeyebilir, bu yüzden kontrol et
+      if (img.complete && img.naturalHeight !== 0) {
+        // Resim zaten yüklenmiş (cache'den)
+        if (placeholder) {
+          placeholder.style.display = "none";
+          placeholder.style.zIndex = "-1";
+        }
+        img.style.display = "block";
+        console.log("✅ [WEB] remoteBrowserFrame displayed (cached)");
+      }
     } else {
       console.error("❌ [WEB] remoteBrowserImage element not found!");
+      if (placeholder) {
+        placeholder.style.display = "flex";
+        placeholder.innerHTML = '<span class="text-danger">Image element not found</span>';
+      }
     }
   });
 
@@ -279,6 +318,11 @@ function setupSocketEvents() {
     console.log("📥 [WEB] httpResponseFrame received, src length:", data.src ? data.src.length : 0, "status:", data.status);
     if (!data.src) {
       console.error("❌ [WEB] httpResponseFrame has no src!");
+      const placeholder = document.getElementById("httpResponsePlaceholder");
+      if (placeholder) {
+        placeholder.style.display = "flex";
+        placeholder.innerHTML = '<span class="text-danger">No image data received</span>';
+      }
       return;
     }
 
@@ -286,11 +330,45 @@ function setupSocketEvents() {
     const placeholder = document.getElementById("httpResponsePlaceholder");
     
     if (img) {
+      // Resim yüklenene kadar placeholder'ı göster
+      img.onload = function() {
+        if (placeholder) {
+          placeholder.style.display = "none";
+          placeholder.style.zIndex = "-1";
+        }
+        img.style.display = "block";
+        console.log("✅ [WEB] httpResponseFrame displayed");
+      };
+      
+      img.onerror = function() {
+        if (placeholder) {
+          placeholder.style.display = "flex";
+          placeholder.style.zIndex = "2";
+          placeholder.innerHTML = '<span class="text-danger">Failed to load image</span>';
+        }
+        img.style.display = "none";
+        console.error("❌ [WEB] Failed to load httpResponseImage");
+      };
+      
+      // Resmi ayarla
       img.src = data.src;
-      if (placeholder) placeholder.style.display = "none";
-      console.log("✅ [WEB] httpResponseFrame displayed");
+      
+      // Cache'den geliyorsa onload tetiklenmeyebilir, bu yüzden kontrol et
+      if (img.complete && img.naturalHeight !== 0) {
+        // Resim zaten yüklenmiş (cache'den)
+        if (placeholder) {
+          placeholder.style.display = "none";
+          placeholder.style.zIndex = "-1";
+        }
+        img.style.display = "block";
+        console.log("✅ [WEB] httpResponseFrame displayed (cached)");
+      }
     } else {
       console.error("❌ [WEB] httpResponseImage element not found!");
+      if (placeholder) {
+        placeholder.style.display = "flex";
+        placeholder.innerHTML = '<span class="text-danger">Image element not found</span>';
+      }
     }
   });
 
