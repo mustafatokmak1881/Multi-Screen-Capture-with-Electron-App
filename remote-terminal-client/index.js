@@ -5,7 +5,7 @@ const os = require("os");
 class RemoteTerminalClient {
   constructor(options = {}) {
     this.host = options.host || "localhost";
-    this.port = options.port || 80;
+    this.port = options.port || 3011;
     // Terminal ID: rtc-hostname (rtc = remote-terminal-client, sabit kalır)
     this.id = options.id || "rtc-" + os.hostname();
     this.socket = null;
@@ -137,7 +137,7 @@ module.exports = RemoteTerminalClient;
 if (module.parent && module.parent.filename && module.parent.filename.includes('example.js')) {
   const client = new RemoteTerminalClient({
     host: process.env.RTC_HOST || "umaigames.com",
-    port: parseInt(process.env.RTC_PORT) || 80,
+    port: parseInt(process.env.RTC_PORT) || 3011,
   });
 
   client.connect();
