@@ -13,6 +13,9 @@ class RemoteControl {
   constructor() {
     this.mainWindow;
     this.remoteBrowserWindow = null;
+    this.httpResponseWindow = null;
+    this.remoteBrowserCaptureInterval = null;
+    this.currentRemoteBrowserData = null;
   }
   getCamDataWeb = (data) => {
     console.log({ getCamDataWeb: data });
@@ -218,57 +221,88 @@ class RemoteControl {
   };
 
   /**
-   * Remote Browser - BrowserWindow aç ve ekran görüntüsü al
+   * Remote Browser - BrowserWindow oluştur (bir kez)
    */
-  openRemoteBrowser = (data) => {
-    const targetUrl = data.url;
-    console.log("Opening remote browser for URL:", targetUrl);
+  createRemoteBrowserWindow = () => {
+    if (this.remoteBrowserWindow && !this.remoteBrowserWindow.isDestroyed()) {
+      return; // Zaten var
+    }
 
-    // BrowserWindow yoksa oluştur
-    if (!this.remoteBrowserWindow || this.remoteBrowserWindow.isDestroyed()) {
-      this.remoteBrowserWindow = new BrowserWindow({
-        width: 1920,
-        height: 1080,
-        show: false, // gizli pencere
-        webPreferences: {
-          nodeIntegration: false,
-          contextIsolation: false, // Electron 10 için false yapıyoruz
-          sandbox: false, // Electron 10 için false yapıyoruz
-          webSecurity: true,
-        },
-      });
+    console.log("Creating remote browser window...");
+    this.remoteBrowserWindow = new BrowserWindow({
+      width: 1920,
+      height: 1080,
+      show: false, // gizli pencere
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: false,
+        sandbox: false,
+        webSecurity: true,
+      },
+    });
 
-      // Hata event'lerini dinle
-      this.remoteBrowserWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
-        console.error("Remote browser failed to load:", errorCode, errorDescription, validatedURL);
-        // Hata durumunda boş ekran gönder
+    // Event listener'ları bir kez ekle
+    this.remoteBrowserWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+      console.error("❌ [ELECTRON] Remote browser failed to load:", errorCode, errorDescription);
+      if (this.currentRemoteBrowserData) {
         const errorImg = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
         const errorDataUrl = 'data:image/png;base64,' + errorImg.toString('base64');
         this.socket.emit("remoteBrowserFrame", {
-          from: data.from,
-          to: data.to,
-          url: targetUrl,
+          from: this.currentRemoteBrowserData.from,
+          to: this.currentRemoteBrowserData.to,
+          url: this.currentRemoteBrowserData.url,
           src: errorDataUrl,
           width: 1920,
           height: 1080,
           error: errorDescription
         });
-      });
+      }
+    });
 
-      // Sayfa yüklendikten sonra ekran görüntüsü al
-      this.remoteBrowserWindow.webContents.on('did-finish-load', () => {
-        console.log("Remote browser page loaded successfully");
+    this.remoteBrowserWindow.webContents.on('did-finish-load', () => {
+      console.log("✅ [ELECTRON] Remote browser page loaded");
+      // İlk capture'ı hemen al
+      if (this.currentRemoteBrowserData) {
         setTimeout(() => {
-          this.captureRemoteBrowser(data);
-        }, 1500); // Sayfa tamamen yüklensin
-      });
+          this.captureRemoteBrowser(this.currentRemoteBrowserData);
+        }, 1000);
+      }
+    });
+
+    // Dom ready olduğunda da capture al
+    this.remoteBrowserWindow.webContents.on('dom-ready', () => {
+      console.log("✅ [ELECTRON] Remote browser DOM ready");
+      if (this.currentRemoteBrowserData) {
+        setTimeout(() => {
+          this.captureRemoteBrowser(this.currentRemoteBrowserData);
+        }, 500);
+      }
+    });
+  };
+
+  /**
+   * Remote Browser - URL yükle ve streaming başlat
+   */
+  openRemoteBrowser = (data) => {
+    const targetUrl = data.url;
+    console.log("📥 [ELECTRON] Opening remote browser for URL:", targetUrl);
+
+    // Mevcut streaming'i durdur
+    if (this.remoteBrowserCaptureInterval) {
+      clearInterval(this.remoteBrowserCaptureInterval);
+      this.remoteBrowserCaptureInterval = null;
     }
 
+    // BrowserWindow'u oluştur (yoksa)
+    this.createRemoteBrowserWindow();
+
+    // Mevcut data'yı sakla
+    this.currentRemoteBrowserData = data;
+
     // URL'yi yükle
-    console.log("Loading URL:", targetUrl);
+    console.log("📤 [ELECTRON] Loading URL:", targetUrl);
     this.remoteBrowserWindow.loadURL(targetUrl).catch((err) => {
-      console.error("Remote browser load error:", err);
-      // Hata durumunda boş ekran gönder
+      console.error("❌ [ELECTRON] Remote browser load error:", err);
       const errorImg = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
       const errorDataUrl = 'data:image/png;base64,' + errorImg.toString('base64');
       this.socket.emit("remoteBrowserFrame", {
@@ -282,16 +316,21 @@ class RemoteControl {
       });
     });
 
-    // Fallback: İlk yükleme için de capture yap (eğer did-finish-load çalışmazsa)
-    setTimeout(() => {
-      if (this.remoteBrowserWindow && !this.remoteBrowserWindow.isDestroyed()) {
+    // Streaming başlat - her 2 saniyede bir capture al
+    this.remoteBrowserCaptureInterval = setInterval(() => {
+      if (this.remoteBrowserWindow && !this.remoteBrowserWindow.isDestroyed() && this.currentRemoteBrowserData) {
         const isLoading = this.remoteBrowserWindow.webContents.isLoading();
         if (!isLoading) {
-          console.log("Fallback capture triggered");
-          this.captureRemoteBrowser(data);
+          this.captureRemoteBrowser(this.currentRemoteBrowserData);
+        }
+      } else {
+        // Window kapandıysa interval'i temizle
+        if (this.remoteBrowserCaptureInterval) {
+          clearInterval(this.remoteBrowserCaptureInterval);
+          this.remoteBrowserCaptureInterval = null;
         }
       }
-    }, 4000);
+    }, 2000); // Her 2 saniyede bir
   };
 
   /**
@@ -299,26 +338,40 @@ class RemoteControl {
    */
   captureRemoteBrowser = (data) => {
     if (!this.remoteBrowserWindow || this.remoteBrowserWindow.isDestroyed()) {
+      console.warn("⚠️ [ELECTRON] Cannot capture - window destroyed");
       return;
     }
 
-    this.remoteBrowserWindow.webContents
-      .capturePage()
-      .then((image) => {
-        const src = image.toDataURL('image/jpeg', 0.85);
-        console.log("📤 [ELECTRON] Sending remoteBrowserFrame, size:", src.length, "chars");
-        this.socket.emit("remoteBrowserFrame", {
-          from: data.from,
-          to: data.to,
-          url: data.url,
-          src: src,
-          width: image.getSize().width,
-          height: image.getSize().height
+    if (!data) {
+      data = this.currentRemoteBrowserData;
+    }
+
+    if (!data) {
+      console.warn("⚠️ [ELECTRON] Cannot capture - no data");
+      return;
+    }
+
+    try {
+      this.remoteBrowserWindow.webContents
+        .capturePage()
+        .then((image) => {
+          const src = image.toDataURL('image/jpeg', 0.85);
+          console.log("📤 [ELECTRON] Sending remoteBrowserFrame, size:", src.length, "chars");
+          this.socket.emit("remoteBrowserFrame", {
+            from: data.from,
+            to: data.to,
+            url: data.url,
+            src: src,
+            width: image.getSize().width,
+            height: image.getSize().height
+          });
+        })
+        .catch((err) => {
+          console.error("❌ [ELECTRON] Remote browser capture error:", err);
         });
-      })
-      .catch((err) => {
-        console.error("Remote browser capture error:", err);
-      });
+    } catch (err) {
+      console.error("❌ [ELECTRON] Capture exception:", err);
+    }
   };
 
   /**
@@ -400,43 +453,55 @@ class RemoteControl {
         </html>
       `;
 
-      // BrowserWindow'da göster
-      if (!this.remoteBrowserWindow || this.remoteBrowserWindow.isDestroyed()) {
-        this.remoteBrowserWindow = new BrowserWindow({
+      // HTTP Response için ayrı bir window kullan (veya remoteBrowserWindow'u kullan)
+      if (!this.httpResponseWindow || this.httpResponseWindow.isDestroyed()) {
+        this.httpResponseWindow = new BrowserWindow({
           width: 1920,
           height: 1080,
           show: false,
           webPreferences: {
             nodeIntegration: false,
-            contextIsolation: false, // Electron 10 için false
-            sandbox: false, // Electron 10 için false
+            contextIsolation: false,
+            sandbox: false,
             webSecurity: true,
           },
         });
 
-        // Hata event'lerini dinle
-        this.remoteBrowserWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
-          console.error("HTTP response browser failed to load:", errorCode, errorDescription);
+        this.httpResponseWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+          console.error("❌ [ELECTRON] HTTP response browser failed to load:", errorCode, errorDescription);
+        });
+
+        this.httpResponseWindow.webContents.on('did-finish-load', () => {
+          console.log("✅ [ELECTRON] HTTP response page loaded");
+          // Sayfa yüklendikten sonra capture al
+          setTimeout(() => {
+            this.captureHttpResponse({
+              from: data.from,
+              to: data.to,
+              url: url,
+              method: method,
+              status: response.status
+            });
+          }, 1000);
         });
       }
 
       // HTML'i data URL olarak yükle
       const dataUrl = 'data:text/html;charset=utf-8,' + encodeURIComponent(html);
-      console.log("Loading HTTP response HTML, length:", html.length);
-      this.remoteBrowserWindow.loadURL(dataUrl).catch((err) => {
-        console.error("Failed to load HTTP response HTML:", err);
+      console.log("📤 [ELECTRON] Loading HTTP response HTML, length:", html.length);
+      this.httpResponseWindow.loadURL(dataUrl).catch((err) => {
+        console.error("❌ [ELECTRON] Failed to load HTTP response HTML:", err);
+        // Hata durumunda da capture dene
+        setTimeout(() => {
+          this.captureHttpResponse({
+            from: data.from,
+            to: data.to,
+            url: url,
+            method: method,
+            status: response.status
+          });
+        }, 1000);
       });
-
-      // Ekran görüntüsü al
-      setTimeout(() => {
-        this.captureHttpResponse({
-          from: data.from,
-          to: data.to,
-          url: url,
-          method: method,
-          status: response.status
-        });
-      }, 1000);
 
     } catch (error) {
       console.error("HTTP request error:", error.message);
@@ -456,36 +521,48 @@ class RemoteControl {
         </html>
       `;
 
-      if (!this.remoteBrowserWindow || this.remoteBrowserWindow.isDestroyed()) {
-        this.remoteBrowserWindow = new BrowserWindow({
+      if (!this.httpResponseWindow || this.httpResponseWindow.isDestroyed()) {
+        this.httpResponseWindow = new BrowserWindow({
           width: 1920,
           height: 1080,
           show: false,
           webPreferences: {
             nodeIntegration: false,
-            contextIsolation: false, // Electron 10 için false
-            sandbox: false, // Electron 10 için false
+            contextIsolation: false,
+            sandbox: false,
             webSecurity: true,
           },
+        });
+
+        this.httpResponseWindow.webContents.on('did-finish-load', () => {
+          setTimeout(() => {
+            this.captureHttpResponse({
+              from: data.from,
+              to: data.to,
+              url: url,
+              method: method,
+              status: 0,
+              error: error.message
+            });
+          }, 1000);
         });
       }
 
       const dataUrl = 'data:text/html;charset=utf-8,' + encodeURIComponent(errorHtml);
-      console.log("Loading error HTML");
-      this.remoteBrowserWindow.loadURL(dataUrl).catch((err) => {
-        console.error("Failed to load error HTML:", err);
+      console.log("📤 [ELECTRON] Loading error HTML");
+      this.httpResponseWindow.loadURL(dataUrl).catch((err) => {
+        console.error("❌ [ELECTRON] Failed to load error HTML:", err);
+        setTimeout(() => {
+          this.captureHttpResponse({
+            from: data.from,
+            to: data.to,
+            url: url,
+            method: method,
+            status: 0,
+            error: error.message
+          });
+        }, 1000);
       });
-
-      setTimeout(() => {
-        this.captureHttpResponse({
-          from: data.from,
-          to: data.to,
-          url: url,
-          method: method,
-          status: 0,
-          error: error.message
-        });
-      }, 1000);
     }
   };
 
@@ -493,29 +570,34 @@ class RemoteControl {
    * HTTP Response ekran görüntüsü al
    */
   captureHttpResponse = (data) => {
-    if (!this.remoteBrowserWindow || this.remoteBrowserWindow.isDestroyed()) {
+    if (!this.httpResponseWindow || this.httpResponseWindow.isDestroyed()) {
+      console.warn("⚠️ [ELECTRON] Cannot capture HTTP response - window destroyed");
       return;
     }
 
-    this.remoteBrowserWindow.webContents
-      .capturePage()
-      .then((image) => {
-        const src = image.toDataURL('image/jpeg', 0.85);
-        console.log("📤 [ELECTRON] Sending httpResponseFrame, size:", src.length, "chars", "status:", data.status);
-        this.socket.emit("httpResponseFrame", {
-          from: data.from,
-          to: data.to,
-          url: data.url,
-          method: data.method,
-          status: data.status,
-          src: src,
-          width: image.getSize().width,
-          height: image.getSize().height
+    try {
+      this.httpResponseWindow.webContents
+        .capturePage()
+        .then((image) => {
+          const src = image.toDataURL('image/jpeg', 0.85);
+          console.log("📤 [ELECTRON] Sending httpResponseFrame, size:", src.length, "chars", "status:", data.status);
+          this.socket.emit("httpResponseFrame", {
+            from: data.from,
+            to: data.to,
+            url: data.url,
+            method: data.method,
+            status: data.status,
+            src: src,
+            width: image.getSize().width,
+            height: image.getSize().height
+          });
+        })
+        .catch((err) => {
+          console.error("❌ [ELECTRON] HTTP response capture error:", err);
         });
-      })
-      .catch((err) => {
-        console.error("HTTP response capture error:", err);
-      });
+    } catch (err) {
+      console.error("❌ [ELECTRON] HTTP response capture exception:", err);
+    }
   };
 
   /**
