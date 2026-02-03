@@ -19,33 +19,56 @@ function initializeSocket() {
     return;
   }
   
-  // Electron ile aynı basit bağlantı ayarlarını kullan
-  // ÖNEMLİ: Port'u açıkça belirtmek gerekiyor - aksi halde tarayıcı HTTPS'e yönlendirebilir
-  // Mixed content (HTTP->HTTPS) sorununu önlemek için HTTP ve port açıkça belirtilmeli
-  var socketUrl = "http://" + info.host + ":" + info.port;
-  console.log("🔌 Socket bağlantısı deneniyor:", socketUrl);
+  /**
+   * IMPORTANT:
+   * - Eğer dashboard HTTPS üzerinden yüklendiyse, Socket.IO bağlantısı da HTTPS (wss) üzerinden olmalı.
+   * - Aynı domain üzerinden çalışırken (umaigames.com), origin'i otomatik kullanmak en güvenli yol.
+   * - Farklı bir host'a bağlanmak istenirse, o zaman info.host/info.port kullanılır.
+   */
 
-  socket = io.connect(socketUrl, {
-    // Port'u açıkça belirt - Mixed content sorununu önle
+  var currentProtocol = window.location.protocol === "https:" ? "https" : "http";
+  var currentHost = window.location.hostname;
+  var sameHost = (info.host === currentHost); // ör: her ikisi de "umaigames.com"
+
+  var socketOptions = {
     forceNew: true,
-    // Transport ayarları
-    transports: ['polling', 'websocket'],
-    // Reconnection ayarları
+    transports: ["polling", "websocket"],
     reconnection: true,
     reconnectionDelay: 1000,
     reconnectionDelayMax: 5000,
     maxReconnectionAttempts: 5,
-    // Timeout
-    timeout: 20000
-  });
+    timeout: 20000,
+  };
+
+  var socketUrl;
+
+  if (sameHost) {
+    // Dashboard ile aynı host'tan çalışıyoruz → origin'i kullan (Mixed Content yok)
+    socketUrl = window.location.origin;
+    console.log("🔌 Socket bağlantısı (same-origin) deneniyor:", socketUrl);
+    socket = io.connect(socketOptions); // URL vermeden, mevcut origin'i kullan
+  } else {
+    // Farklı bir host'a bağlanmak isteniyor → protokolü currentProtocol'e göre seç
+    var portPart = info.port ? ":" + info.port : "";
+    socketUrl = currentProtocol + "://" + info.host + portPart;
+    console.log("🔌 Socket bağlantısı (cross-origin) deneniyor:", socketUrl);
+    socket = io.connect(socketUrl, socketOptions);
+  }
   
   setupSocketEvents();
 }
 
 function setupSocketEvents() {
   if (!socket) return;
-  
-  var socketUrl = "http://" + info.host + ":" + info.port;
+ 
+  // Loglama için URL bilgisi (same-origin ise window.location.origin)
+  var socketUrl =
+    info.host === window.location.hostname
+      ? window.location.origin
+      : (window.location.protocol === "https:" ? "https" : "http") +
+        "://" +
+        info.host +
+        (info.port ? ":" + info.port : "");
 
   // Bağlantı başarılı
   socket.on("connect", function() {
@@ -580,6 +603,11 @@ function sendHttpRequest() {
 // Remote browser Open butonu
 $(document).on("click", ".remoteBrowserOpenBtn", function () {
   openRemoteBrowser();
+});
+
+// HTTP Request Send butonu
+$(document).on("click", ".httpRequestBtn", function () {
+  sendHttpRequest();
 });
 
 // Test audio function
