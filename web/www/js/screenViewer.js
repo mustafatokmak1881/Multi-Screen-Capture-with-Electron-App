@@ -254,10 +254,12 @@ function setupSocketEvents() {
 
   socket.on("getRunResponse", function (data) {
     console.log({ getRunResponse: data });
+    console.log("📋 getRunResponse cmd content:", data.cmd);
     $(".cmdArea").text(data.cmd);
     
     // Eğer getUsers komutu ise, application ID listesini güncelle
-    if (data.cmd && data.cmd.includes("terminal-")) {
+    if (data.cmd && (data.cmd.includes("terminal-") || data.cmd.includes("Terminal"))) {
+      console.log("🔄 Updating application ID select from getUsers response");
       updateApplicationIdSelect(data.cmd);
     }
   });
@@ -814,6 +816,8 @@ function loadApplicationIds() {
  * Application ID selectbox'ını güncelle
  */
 function updateApplicationIdSelect(roomListText) {
+  console.log("🔄 updateApplicationIdSelect called with:", roomListText);
+  
   const select = $("#applicationIdSelect");
   if (!select.length) {
     console.warn("⚠️ Application ID selectbox not found");
@@ -829,53 +833,74 @@ function updateApplicationIdSelect(roomListText) {
   // Room listesini parse et
   const applicationIds = [];
   
-  // JSON array formatını kontrol et
   try {
-    // Önce JSON array olarak parse etmeyi dene
-    const jsonMatch = roomListText.match(/\[(.*?)\]/s);
-    if (jsonMatch) {
-      // JSON array içindeki room'ları bul
-      const rooms = jsonMatch[1].split(',').map(r => r.trim().replace(/["']/g, ''));
-      rooms.forEach(room => {
-        if (room.startsWith('terminal-')) {
-          const appId = room.replace("terminal-", "");
-          if (appId && !applicationIds.includes(appId)) {
-            applicationIds.push(appId);
-          }
+    // Server'dan gelen format: JSON.stringify(Array.from(rooms)).split(",").join("\r\n")
+    // Örnek: ["room1"\r\n"room2"\r\n"room3"] şeklinde gelebilir
+    
+    // Önce tüm text'i al
+    let text = roomListText || "";
+    console.log("📝 Raw text:", text);
+    
+    // Tüm terminal- ile başlayan room'ları bul (regex ile)
+    const terminalMatches = text.matchAll(/["']?(terminal-(\d+))["']?/g);
+    
+    for (const match of terminalMatches) {
+      if (match[2]) {
+        const appId = match[2];
+        if (appId && !applicationIds.includes(appId)) {
+          applicationIds.push(appId);
+          console.log("✅ Found application ID:", appId);
         }
-      });
-    } else {
-      // Satır satır parse et
-      const lines = roomListText.split(/\r?\n/);
-      lines.forEach(line => {
-        // terminal- ile başlayan room'ları bul
-        const match = line.match(/["']?(terminal-(\d+))["']?/);
-        if (match && match[2]) {
-          const appId = match[2];
-          if (!applicationIds.includes(appId)) {
-            applicationIds.push(appId);
+      }
+    }
+    
+    // Eğer hiç bulunamadıysa, satır satır kontrol et
+    if (applicationIds.length === 0) {
+      console.log("⚠️ No matches found with regex, trying line by line...");
+      const lines = text.split(/\r?\n/);
+      lines.forEach((line, index) => {
+        line = line.trim();
+        console.log(`Line ${index}:`, line);
+        
+        // terminal- ile başlayan satırları bul
+        if (line.includes("terminal-")) {
+          const match = line.match(/terminal-(\d+)/);
+          if (match && match[1]) {
+            const appId = match[1];
+            if (!applicationIds.includes(appId)) {
+              applicationIds.push(appId);
+              console.log("✅ Found application ID from line:", appId);
+            }
           }
         }
       });
     }
+    
   } catch (e) {
-    console.error("❌ Error parsing room list:", e);
+    console.error("❌ Error parsing room list:", e, e.stack);
   }
   
   // ID'leri sırala
   applicationIds.sort((a, b) => parseInt(a) - parseInt(b));
   
+  console.log("📊 Parsed application IDs:", applicationIds);
+  
   // Selectbox'a ekle
-  applicationIds.forEach(id => {
-    select.append(`<option value="${id}">${id}</option>`);
-  });
-  
-  // Eğer mevcut seçim hala geçerliyse onu koru
-  if (currentValue && select.find(`option[value="${currentValue}"]`).length > 0) {
-    select.val(currentValue);
+  if (applicationIds.length > 0) {
+    applicationIds.forEach(id => {
+      select.append(`<option value="${id}">${id}</option>`);
+    });
+    
+    // Eğer mevcut seçim hala geçerliyse onu koru
+    if (currentValue && select.find(`option[value="${currentValue}"]`).length > 0) {
+      select.val(currentValue);
+    }
+    
+    console.log("✅ Application ID list updated:", applicationIds.length, "applications found");
+  } else {
+    console.warn("⚠️ No application IDs found in response");
+    select.append(`<option value="">No applications found</option>`);
   }
-  
-  console.log("✅ Application ID list updated:", applicationIds.length, "applications found", applicationIds);
 }
 
 // Application ID selectbox'tan seçim yapıldığında input alanına yaz

