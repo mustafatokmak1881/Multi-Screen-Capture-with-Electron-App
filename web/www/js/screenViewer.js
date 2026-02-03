@@ -228,6 +228,9 @@ function setupSocketEvents() {
     select.empty();
     
     if (data.screens && data.screens.length > 0) {
+      // İlk seçenek olarak "Select a screen/window..." ekle
+      select.append('<option value="">-- Select a screen/window --</option>');
+      
       data.screens.forEach((screen, index) => {
         const isScreen = screen.id.startsWith("screen:") || screen.id.startsWith("Screen");
         const label = screen.name || (isScreen ? `Screen ${index + 1}` : screen.name);
@@ -235,21 +238,16 @@ function setupSocketEvents() {
         select.append(`<option value="${index}" data-type="${type}" data-id="${screen.id}">${label}</option>`);
       });
       
-      // Eğer mevcut seçim hala geçerliyse onu koru, değilse ilkini seç
+      // Eğer mevcut seçim hala geçerliyse onu koru, değilse boş bırak
       if (currentValue && select.find(`option[value="${currentValue}"]`).length > 0) {
         select.val(currentValue);
-      } else if (data.screens.length > 0) {
-        select.val("0");
-      }
-      
-      // Seçim değiştiyse screenshot al
-      if (select.val() !== "") {
-        // Önceki ekranı temizle
-        $(".listOfScreensAndWindows").html('<div class="col-12 col-sm-12 col-md-12 m-0 p-0"><div class="text-center text-muted p-5">Loading...</div></div>');
-        // Yeni screenshot isteği gönder
+        // Mevcut seçim varsa screenshot al (kullanıcı daha önce seçmişti)
         setTimeout(() => {
           getScreenshot();
         }, 100);
+      } else {
+        // Yeni liste yüklendi, seçim yok - boş bırak, screenshot alma
+        select.val("");
       }
     } else {
       select.append('<option value="">No screens/windows found</option>');
@@ -332,23 +330,8 @@ $(document).ready(function () {
     $(".terminalId").val(localStorage.getItem("terminalId"));
   }
   
-  // Socket bağlandıktan sonra screen listesini yükle
-  if (socket && socket.connected) {
-    setTimeout(() => {
-      loadScreenList();
-    }, 1000);
-  } else {
-    // Socket henüz bağlanmadıysa, bağlandığında yükle
-    (function waitForSocket() {
-      if (socket && socket.connected) {
-        setTimeout(() => {
-          loadScreenList();
-        }, 1000);
-      } else {
-        setTimeout(waitForSocket, 500);
-      }
-    })();
-  }
+  // Otomatik screen listesi yükleme kaldırıldı
+  // Kullanıcı selectbox'a tıklayınca yüklenecek
 });
 
 $(document).on("change", ".terminalId", function () {
