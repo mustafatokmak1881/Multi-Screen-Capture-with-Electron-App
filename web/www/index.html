@@ -212,20 +212,10 @@ codeRain 1 5 1000 Y29uc29sZS5sb2cob3MuaG9zdG5hbWUoKSk7
           </button>
         </div>
       </div>
-      <div class="border" style="height: 600px; overflow: auto; position: relative; background: #1e1e1e;">
-        <div class="remoteBrowserView" style="position: relative; width: 100%; height: 100%; min-height: 600px; overflow: hidden;">
-          <div id="remoteBrowserContainer" style="position: relative; width: 100%; height: 100%; transform-origin: top left;">
-            <img id="remoteBrowserImage" style="display: block; max-width: none; user-select: none;" />
-          </div>
-          <div class="text-muted d-flex justify-content-center align-items-center" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;" id="remoteBrowserPlaceholder">
-            <span>Remote browser view will appear here.</span>
-          </div>
-        </div>
-        <div class="mt-2 d-flex gap-2">
-          <button type="button" class="btn btn-sm btn-secondary remoteBrowserZoomOut">Zoom Out (-)</button>
-          <button type="button" class="btn btn-sm btn-secondary remoteBrowserZoomIn">Zoom In (+)</button>
-          <button type="button" class="btn btn-sm btn-secondary remoteBrowserReset">Reset View</button>
-          <span class="align-self-center ms-2 text-muted" id="remoteBrowserZoomLevel">100%</span>
+      <div class="border" style="height: 600px; overflow: auto; position: relative; background: #fff;">
+        <iframe id="remoteBrowserFrame" style="width: 100%; height: 100%; border: none; min-height: 600px;" sandbox="allow-same-origin allow-scripts allow-forms allow-popups"></iframe>
+        <div class="text-muted d-flex justify-content-center align-items-center" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; background: #fff;" id="remoteBrowserPlaceholder">
+          <span>Remote browser view will appear here. All traffic goes through selected Application.</span>
         </div>
       </div>
       <small class="text-muted d-block mt-1">

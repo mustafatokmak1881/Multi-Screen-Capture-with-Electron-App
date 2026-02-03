@@ -176,12 +176,8 @@ io.on("connection", (socket) => {
     io.to(data.from).emit("remoteBrowserOpen", data);
   });
 
-  socket.on("remoteBrowserFrame", (data) => {
-    io.to(data.to).emit("remoteBrowserFrame", data);
-  });
-
-  socket.on("remoteBrowserInput", (data) => {
-    io.to(data.from).emit("remoteBrowserInput", data);
+  socket.on("remoteBrowserHTML", (data) => {
+    io.to(data.to).emit("remoteBrowserHTML", data);
   });
 
   // Screen/window listesi

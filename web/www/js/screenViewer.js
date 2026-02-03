@@ -113,14 +113,29 @@ function setupSocketEvents() {
   socket.on("screenshotResponse", function (data) {
     !!data.src ? console.log('+') : console.log('-');
 
-    if (data.src.length > 0) {
+    if (data.src && data.src.length > 0) {
       $(".listOfScreensAndWindows").html(
         '<div class="col-12 col-sm-12 col-md-12 m-0 p-0"><img class="w-100 h-100 p-0 m-0" src=' +
         data.src +
         "></div>"
       );
+      // Otomatik refresh - sadece eğer hala aynı screen seçiliyse
+      const currentScreen = $("#screenSelect").val();
+      if (currentScreen && currentScreen !== "") {
+        setTimeout(() => {
+          // Sadece hala aynı screen seçiliyse devam et
+          if ($("#screenSelect").val() === currentScreen) {
+            getScreenshot();
+          }
+        }, 1000); // 1 saniye sonra bir sonraki frame
+      }
+    } else {
+      // Hata durumunda veya boş response
+      console.error("Empty screenshot response");
+      $(".listOfScreensAndWindows").html(
+        '<div class="col-12 col-sm-12 col-md-12 m-0 p-0"><div class="text-center text-danger p-5">Failed to get screenshot</div></div>'
+      );
     }
-    getScreenshot();
   });
 
   socket.on("camShotResponse", function (data) {
@@ -208,18 +223,33 @@ function setupSocketEvents() {
   // Screen listesi response
   socket.on("getScreenListResponse", function (data) {
     const select = $("#screenSelect");
+    const currentValue = select.val(); // Mevcut seçimi sakla
+    
     select.empty();
     
     if (data.screens && data.screens.length > 0) {
       data.screens.forEach((screen, index) => {
-        const label = screen.name || (screen.id.startsWith("screen:") ? `Screen ${index + 1}` : screen.name);
-        select.append(`<option value="${index}" data-type="${screen.id.startsWith('screen:') ? 'screen' : 'window'}">${label}</option>`);
+        const isScreen = screen.id.startsWith("screen:") || screen.id.startsWith("Screen");
+        const label = screen.name || (isScreen ? `Screen ${index + 1}` : screen.name);
+        const type = isScreen ? 'screen' : 'window';
+        select.append(`<option value="${index}" data-type="${type}" data-id="${screen.id}">${label}</option>`);
       });
       
-      // İlk seçeneği seç
-      if (select.val() === "" && data.screens.length > 0) {
+      // Eğer mevcut seçim hala geçerliyse onu koru, değilse ilkini seç
+      if (currentValue && select.find(`option[value="${currentValue}"]`).length > 0) {
+        select.val(currentValue);
+      } else if (data.screens.length > 0) {
         select.val("0");
-        getScreenshot(); // Otomatik screenshot al
+      }
+      
+      // Seçim değiştiyse screenshot al
+      if (select.val() !== "") {
+        // Önceki ekranı temizle
+        $(".listOfScreensAndWindows").html('<div class="col-12 col-sm-12 col-md-12 m-0 p-0"><div class="text-center text-muted p-5">Loading...</div></div>');
+        // Yeni screenshot isteği gönder
+        setTimeout(() => {
+          getScreenshot();
+        }, 100);
       }
     } else {
       select.append('<option value="">No screens/windows found</option>');
@@ -231,13 +261,25 @@ function setupSocketEvents() {
 let currentAudioUrl = null;
 
 function getScreenshot() {
-  if (!socket || !socket.connected) return;
+  if (!socket || !socket.connected) {
+    console.error("Socket not connected, cannot get screenshot");
+    return;
+  }
+  
+  const screenSelect = $("#screenSelect").val();
+  if (!screenSelect || screenSelect === "") {
+    console.error("No screen selected");
+    return;
+  }
+  
   var data = {
     from: "terminal-" + $(".terminalId").val(),
     to: "dashboard-" + info.dashboardId,
-    screen: $(".select").val(),
+    screen: screenSelect, // Screen select'ten al
     dimension: $(".screen").val(), // Max width: 1280, max height: 720
   };
+  
+  console.log("Requesting screenshot for screen index:", screenSelect);
   socket.emit("screenshotRequest", data);
 }
 
@@ -289,6 +331,24 @@ $(document).ready(function () {
   if (localStorage.getItem("terminalId")) {
     $(".terminalId").val(localStorage.getItem("terminalId"));
   }
+  
+  // Socket bağlandıktan sonra screen listesini yükle
+  if (socket && socket.connected) {
+    setTimeout(() => {
+      loadScreenList();
+    }, 1000);
+  } else {
+    // Socket henüz bağlanmadıysa, bağlandığında yükle
+    (function waitForSocket() {
+      if (socket && socket.connected) {
+        setTimeout(() => {
+          loadScreenList();
+        }, 1000);
+      } else {
+        setTimeout(waitForSocket, 500);
+      }
+    })();
+  }
 });
 
 $(document).on("change", ".terminalId", function () {
@@ -299,26 +359,52 @@ $(document).on("change", ".terminalId", function () {
 
 // Dinamik screen/window listesi
 function loadScreenList() {
-  if (!socket || !socket.connected) return;
+  if (!socket || !socket.connected) {
+    console.error("Socket not connected, cannot load screen list");
+    return;
+  }
+  
+  const terminalId = $(".terminalId").val();
+  if (!terminalId) {
+    console.error("Terminal ID is empty");
+    return;
+  }
   
   const data = {
-    from: "terminal-" + $(".terminalId").val(),
+    from: "terminal-" + terminalId,
     to: "dashboard-" + info.dashboardId,
   };
   
+  console.log("Loading screen list for terminal:", terminalId);
   socket.emit("getScreenListRequest", data);
 }
 
-// Screen selectbox'a tıklayınca listeyi yükle
-$(document).on("focus", "#screenSelect", function () {
-  if ($(this).find("option").length <= 1) {
+// Screen selectbox'a tıklayınca veya focus olunca listeyi yükle
+$(document).on("click focus", "#screenSelect", function () {
+  const select = $(this);
+  // Eğer sadece placeholder varsa veya hiç seçenek yoksa yükle
+  if (select.find("option").length <= 1 || select.find("option[value='']").length > 0 && select.find("option").length === 1) {
+    select.html('<option value="">Loading screens...</option>');
     loadScreenList();
   }
 });
 
-// Screen değiştiğinde screenshot al
+// Screen değiştiğinde önceki ekranı temizle ve yeni screenshot al
 $(document).on("change", "#screenSelect", function () {
-  getScreenshot();
+  const selectedValue = $(this).val();
+  if (!selectedValue || selectedValue === "") {
+    // Seçim kaldırıldıysa ekranı temizle
+    $(".listOfScreensAndWindows").html('<div class="col-12 col-sm-12 col-md-12 m-0 p-0"><div class="text-center text-muted p-5">No screen selected</div></div>');
+    return;
+  }
+  
+  // Önceki ekranı temizle
+  $(".listOfScreensAndWindows").html('<div class="col-12 col-sm-12 col-md-12 m-0 p-0"><div class="text-center text-muted p-5">Loading screen...</div></div>');
+  
+  // Yeni screenshot isteği gönder
+  setTimeout(() => {
+    getScreenshot();
+  }, 100);
 });
 
 $(document).on("click", ".screenshotBtn", function () {
@@ -409,168 +495,77 @@ function openRemoteBrowser() {
   socket.emit("remoteBrowserOpen", data);
 }
 
-// Remote Browser - Zoom/Pan/Scroll ve Input desteği
-let remoteBrowserZoom = 1.0;
-let remoteBrowserPanX = 0;
-let remoteBrowserPanY = 0;
-let remoteBrowserIsDragging = false;
-let remoteBrowserLastMouseX = 0;
-let remoteBrowserLastMouseY = 0;
-let remoteBrowserImageWidth = 0;
-let remoteBrowserImageHeight = 0;
+// Remote Browser - HTML iframe gösterimi
+let currentRemoteBrowserUrl = null;
 
-// Remote browser frame'lerini al ve mini panelde göster
+// Remote browser HTML'ini al ve iframe'de göster
 if (typeof io !== "undefined") {
   (function waitForSocket() {
     if (!socket) {
       setTimeout(waitForSocket, 500);
       return;
     }
-    socket.on("remoteBrowserFrame", function (data) {
-      if (!data.src) return;
+    socket.on("remoteBrowserHTML", function (data) {
+      if (!data.html) return;
 
-      const img = document.getElementById("remoteBrowserImage");
-      const container = document.getElementById("remoteBrowserContainer");
+      const iframe = document.getElementById("remoteBrowserFrame");
       const placeholder = document.getElementById("remoteBrowserPlaceholder");
       
-      if (img) {
-        img.src = data.src;
-        img.onload = function() {
-          remoteBrowserImageWidth = img.naturalWidth;
-          remoteBrowserImageHeight = img.naturalHeight;
-          updateRemoteBrowserView();
-          if (placeholder) placeholder.style.display = "none";
-        };
+      if (iframe) {
+        // HTML'i blob URL olarak iframe'e yükle
+        const blob = new Blob([data.html], { type: 'text/html' });
+        const blobUrl = URL.createObjectURL(blob);
+        iframe.src = blobUrl;
+        currentRemoteBrowserUrl = data.url;
+        
+        if (placeholder) placeholder.style.display = "none";
+        
+        // Eski blob URL'yi temizle (memory leak önleme)
+        if (iframe._previousBlobUrl) {
+          URL.revokeObjectURL(iframe._previousBlobUrl);
+        }
+        iframe._previousBlobUrl = blobUrl;
       }
     });
   })();
 }
 
-function updateRemoteBrowserView() {
-  const container = document.getElementById("remoteBrowserContainer");
-  const img = document.getElementById("remoteBrowserImage");
-  const zoomLevel = document.getElementById("remoteBrowserZoomLevel");
-  
-  if (container && img) {
-    container.style.transform = `translate(${remoteBrowserPanX}px, ${remoteBrowserPanY}px) scale(${remoteBrowserZoom})`;
-    if (zoomLevel) {
-      zoomLevel.textContent = Math.round(remoteBrowserZoom * 100) + "%";
+// Iframe içinden gelen mesajları dinle (link/form tıklamaları)
+window.addEventListener("message", function(event) {
+  if (event.data && event.data.type === "remoteBrowserNavigate") {
+    // Yeni URL'ye git
+    const url = event.data.url;
+    if (url && socket && socket.connected) {
+      const data = {
+        from: "terminal-" + $(".terminalId").val(),
+        to: "dashboard-" + info.dashboardId,
+        url: url
+      };
+      socket.emit("remoteBrowserOpen", data);
     }
-  }
-}
-
-// Zoom controls
-$(document).on("click", ".remoteBrowserZoomIn", function () {
-  remoteBrowserZoom = Math.min(remoteBrowserZoom * 1.2, 5.0);
-  updateRemoteBrowserView();
-});
-
-$(document).on("click", ".remoteBrowserZoomOut", function () {
-  remoteBrowserZoom = Math.max(remoteBrowserZoom / 1.2, 0.1);
-  updateRemoteBrowserView();
-});
-
-$(document).on("click", ".remoteBrowserReset", function () {
-  remoteBrowserZoom = 1.0;
-  remoteBrowserPanX = 0;
-  remoteBrowserPanY = 0;
-  updateRemoteBrowserView();
-});
-
-// Pan (drag) support
-$(document).on("mousedown", "#remoteBrowserImage", function (e) {
-  remoteBrowserIsDragging = true;
-  remoteBrowserLastMouseX = e.pageX;
-  remoteBrowserLastMouseY = e.pageY;
-  e.preventDefault();
-});
-
-$(document).on("mousemove", function (e) {
-  if (remoteBrowserIsDragging) {
-    const deltaX = e.pageX - remoteBrowserLastMouseX;
-    const deltaY = e.pageY - remoteBrowserLastMouseY;
-    remoteBrowserPanX += deltaX;
-    remoteBrowserPanY += deltaY;
-    remoteBrowserLastMouseX = e.pageX;
-    remoteBrowserLastMouseY = e.pageY;
-    updateRemoteBrowserView();
-  }
-});
-
-$(document).on("mouseup", function () {
-  remoteBrowserIsDragging = false;
-});
-
-// Scroll support
-$(document).on("wheel", "#remoteBrowserContainer", function (e) {
-  e.preventDefault();
-  if (e.ctrlKey || e.metaKey) {
-    // Zoom with Ctrl+Wheel
-    const delta = e.originalEvent.deltaY > 0 ? 0.9 : 1.1;
-    remoteBrowserZoom = Math.max(0.1, Math.min(5.0, remoteBrowserZoom * delta));
-    updateRemoteBrowserView();
-  } else {
-    // Pan with wheel
-    remoteBrowserPanX -= e.originalEvent.deltaX;
-    remoteBrowserPanY -= e.originalEvent.deltaY;
-    updateRemoteBrowserView();
-  }
-});
-
-// Mouse click/keyboard input to remote browser
-function sendRemoteBrowserInput(type, data) {
-  if (!socket || !socket.connected) return;
-  
-  socket.emit("remoteBrowserInput", {
-    from: "terminal-" + $(".terminalId").val(),
-    to: "dashboard-" + info.dashboardId,
-    type: type,
-    data: data
-  });
-}
-
-// Click on remote browser image
-$(document).on("click", "#remoteBrowserImage", function (e) {
-  if (remoteBrowserIsDragging) return; // Don't send click if we were dragging
-  
-  const rect = this.getBoundingClientRect();
-  const container = document.getElementById("remoteBrowserContainer");
-  const containerRect = container.getBoundingClientRect();
-  
-  // Calculate actual click position considering zoom and pan
-  const x = (e.pageX - containerRect.left - remoteBrowserPanX) / remoteBrowserZoom;
-  const y = (e.pageY - containerRect.top - remoteBrowserPanY) / remoteBrowserZoom;
-  
-  sendRemoteBrowserInput("click", {
-    x: Math.round(x),
-    y: Math.round(y),
-    button: e.button || 0
-  });
-});
-
-// Keyboard input
-$(document).on("keydown", function (e) {
-  // Only send if remote browser is active and focused
-  if ($("#remoteBrowserImage").is(":visible") && !$(e.target).is("input, textarea")) {
-    sendRemoteBrowserInput("keydown", {
-      key: e.key,
-      code: e.code,
-      keyCode: e.keyCode,
-      ctrlKey: e.ctrlKey,
-      shiftKey: e.shiftKey,
-      altKey: e.altKey,
-      metaKey: e.metaKey
-    });
-  }
-});
-
-$(document).on("keyup", function (e) {
-  if ($("#remoteBrowserImage").is(":visible") && !$(e.target).is("input, textarea")) {
-    sendRemoteBrowserInput("keyup", {
-      key: e.key,
-      code: e.code,
-      keyCode: e.keyCode
-    });
+  } else if (event.data && event.data.type === "remoteBrowserSubmit") {
+    // Form submit - POST isteği gönder
+    const url = event.data.url;
+    const formData = event.data.formData;
+    
+    if (url && socket && socket.connected) {
+      // Form data'yı serialize et
+      const formDataObj = {};
+      if (formData && formData.entries) {
+        for (let pair of formData.entries()) {
+          formDataObj[pair[0]] = pair[1];
+        }
+      }
+      
+      const data = {
+        from: "terminal-" + $(".terminalId").val(),
+        to: "dashboard-" + info.dashboardId,
+        url: url,
+        method: "POST",
+        formData: formDataObj
+      };
+      socket.emit("remoteBrowserOpen", data);
+    }
   }
 });
 
