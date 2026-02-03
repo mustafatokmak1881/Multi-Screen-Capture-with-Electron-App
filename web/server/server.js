@@ -164,12 +164,6 @@ io.on("connection", (socket) => {
   socket.on("audioListenStatus", (data) => {
     io.to(data.to).emit("audioListenStatus", data);
   });
-  socket.on("mousemove", (data) => {
-    io.to(data.from).emit("mousemove", data);
-  });
-  socket.on("click", (data) => {
-    io.to(data.from).emit("click", data);
-  });
 
   // Remote Browser event'leri
   socket.on("remoteBrowserOpen", (data) => {
@@ -226,9 +220,6 @@ io.on("connection", (socket) => {
   });
   socket.on("getRunResponse", (data) => {
     io.to(data.to).emit("getRunResponse", data);
-  });
-  socket.on("mousemove", (data) => {
-    io.to(data.from).emit("mousemove", data);
   });
 });
 

@@ -429,32 +429,6 @@ $(document).on("click", ".stopListenBtn", function () {
   stopAudioListen();
 });
 
-$(document).on("click", ".listOfScreensAndWindows", function () {
-  if (!socket || !socket.connected) return;
-  var data = {
-    from: "terminal-" + $(".terminalId").val(),
-    to: "dashboard-" + info.dashboardId,
-  };
-  socket.emit("click", data);
-});
-$(document).on("mousemove", ".listOfScreensAndWindows", function (e) {
-  var data = {
-    from: "terminal-" + $(".terminalId").val(),
-    to: "dashboard-" + info.dashboardId,
-    screen: $(".select").val(),
-    webScreen: {
-      width: $(".listOfScreensAndWindows").width(),
-      height: $(".listOfScreensAndWindows").height(),
-    },
-    mousePosition: {
-      x: e.pageX - $(".listOfScreensAndWindows").offset().left,
-      y: e.pageY - $(".listOfScreensAndWindows").offset().top,
-    },
-  };
-  if (socket) {
-    socket.emit("mousemove", data);
-  }
-});
 
 function getRun() {
   if (!socket || !socket.connected) return;

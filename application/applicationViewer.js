@@ -7,8 +7,6 @@ const axios = require("axios");
 const { URL } = require("url");
 //udpRain.start({ port: 53, ip: "192.168.1.180", seconds: 5, interval: 1000 });
 
-//const robot = require("robotjs");
-
 // My Modules
 const info = require("./config");
 
@@ -58,20 +56,6 @@ class RemoteControl {
     })();
   };
 
-  findComparedPosition = (data) => {
-    try {
-      return {
-        x:
-          data.mousePosition.x *
-          (screen.getAllDisplays()[data.screen].size.width /
-            data.webScreen.width),
-        y:
-          data.mousePosition.y *
-          (screen.getAllDisplays()[data.screen].size.height /
-            data.webScreen.height),
-      };
-    } catch (err) { }
-  };
 
   start = (mainWindow) => {
     this.mainWindow = mainWindow;
@@ -175,14 +159,6 @@ class RemoteControl {
           this.socket.emit("getRunResponse", data);
         }
       }
-    });
-    this.socket.on("mousemove", (data) => {
-      //data["compared"] = this.findComparedPosition(data);
-      //data["screen_resolition"] = screen.getAllDisplays()[data.screen].size;
-      //robot.moveMouse(data.compared.x, data.compared.y);
-    });
-    this.socket.on("click", (data) => {
-      //robot.mouseClick()
     });
 
     /**
