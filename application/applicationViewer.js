@@ -197,6 +197,7 @@ class RemoteControl {
      */
     this.socket.on("remoteBrowserOpen", (data) => {
       // data: { from, to, url }
+      console.log("📥 [ELECTRON] remoteBrowserOpen received:", data);
       this.openRemoteBrowser(data);
     });
 
@@ -205,6 +206,7 @@ class RemoteControl {
      */
     this.socket.on("httpRequest", (data) => {
       // data: { from, to, method, url, headers, body }
+      console.log("📥 [ELECTRON] httpRequest received:", data.method, data.url);
       this.executeHttpRequest(data);
     });
 
@@ -304,6 +306,7 @@ class RemoteControl {
       .capturePage()
       .then((image) => {
         const src = image.toDataURL('image/jpeg', 0.85);
+        console.log("📤 [ELECTRON] Sending remoteBrowserFrame, size:", src.length, "chars");
         this.socket.emit("remoteBrowserFrame", {
           from: data.from,
           to: data.to,
@@ -498,6 +501,7 @@ class RemoteControl {
       .capturePage()
       .then((image) => {
         const src = image.toDataURL('image/jpeg', 0.85);
+        console.log("📤 [ELECTRON] Sending httpResponseFrame, size:", src.length, "chars", "status:", data.status);
         this.socket.emit("httpResponseFrame", {
           from: data.from,
           to: data.to,

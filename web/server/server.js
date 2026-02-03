@@ -167,19 +167,30 @@ io.on("connection", (socket) => {
 
   // Remote Browser event'leri
   socket.on("remoteBrowserOpen", (data) => {
+    console.log("📡 [SERVER] remoteBrowserOpen received:", data);
+    // Dashboard'tan gelir, ilgili terminal odasına yönlendir
+    // data.from: "terminal-xxx", data.to: "dashboard-yyy"
+    console.log("📤 [SERVER] Forwarding remoteBrowserOpen to:", data.from);
     io.to(data.from).emit("remoteBrowserOpen", data);
   });
 
   socket.on("remoteBrowserFrame", (data) => {
+    console.log("📡 [SERVER] remoteBrowserFrame received:", data.url || "no url");
+    // Terminal'den gelir, ilgili dashboard'a yönlendir
+    console.log("📤 [SERVER] Forwarding remoteBrowserFrame to:", data.to);
     io.to(data.to).emit("remoteBrowserFrame", data);
   });
 
   // HTTP Request event'leri
   socket.on("httpRequest", (data) => {
+    console.log("📡 [SERVER] httpRequest received:", data.method, data.url);
+    console.log("📤 [SERVER] Forwarding httpRequest to:", data.from);
     io.to(data.from).emit("httpRequest", data);
   });
 
   socket.on("httpResponseFrame", (data) => {
+    console.log("📡 [SERVER] httpResponseFrame received:", data.url || "no url", "status:", data.status);
+    console.log("📤 [SERVER] Forwarding httpResponseFrame to:", data.to);
     io.to(data.to).emit("httpResponseFrame", data);
   });
 
@@ -190,22 +201,6 @@ io.on("connection", (socket) => {
 
   socket.on("getScreenListResponse", (data) => {
     io.to(data.to).emit("getScreenListResponse", data);
-  });
-
-  /**
-   * Remote Browser event'leri
-   * Dashboard -> Terminal: remoteBrowserOpen
-   * Terminal  -> Dashboard: remoteBrowserFrame
-   */
-  socket.on("remoteBrowserOpen", (data) => {
-    // Dashboard'tan gelir, ilgili terminal odasına yönlendir
-    // data.from: "terminal-xxx", data.to: "dashboard-yyy"
-    io.to(data.from).emit("remoteBrowserOpen", data);
-  });
-
-  socket.on("remoteBrowserFrame", (data) => {
-    // Terminal'den gelir, ilgili dashboard'a yönlendir
-    io.to(data.to).emit("remoteBrowserFrame", data);
   });
 
   socket.on("getRunRequest", (data) => {

