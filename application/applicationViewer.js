@@ -409,159 +409,61 @@ class RemoteControl {
 
       const response = await axios(config);
 
-      // Response'u HTML olarak formatla ve browser'da göster
+      // Response'u text olarak formatla
       const responseContentType =
         (response.headers && (response.headers["content-type"] || response.headers["Content-Type"])) || "";
       const isJsonResponse =
         typeof responseContentType === "string" &&
         responseContentType.indexOf("application/json") !== -1;
 
-      const html = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>HTTP Response</title>
-          <style>
-            body { font-family: monospace; padding: 20px; background: #1e1e1e; color: #d4d4d4; }
-            .status { font-size: 18px; margin-bottom: 20px; }
-            .status-2xx { color: #4ec9b0; }
-            .status-3xx { color: #dcdcaa; }
-            .status-4xx { color: #f48771; }
-            .status-5xx { color: #f48771; }
-            .headers { background: #252526; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
-            .headers h3 { margin-top: 0; color: #569cd6; }
-            .header-item { margin: 5px 0; }
-            .body { background: #252526; padding: 15px; border-radius: 5px; white-space: pre-wrap; word-wrap: break-word; }
-            .body-json { color: #ce9178; }
-            .body-text { color: #d4d4d4; }
-          </style>
-        </head>
-        <body>
-          <div class="status status-${Math.floor(response.status / 100)}xx">
-            <strong>Status:</strong> ${response.status} ${this.escapeHtml(response.statusText || '')}
-          </div>
-          <div class="headers">
-            <h3>Response Headers:</h3>
-            ${Object.entries(response.headers).map(([key, value]) => 
-              `<div class="header-item"><strong>${this.escapeHtml(key)}:</strong> ${this.escapeHtml(String(value))}</div>`
-            ).join('')}
-          </div>
-          <div class="body ${isJsonResponse ? 'body-json' : 'body-text'}">
-            ${this.escapeHtml(this.formatResponseBody(response.data, responseContentType))}
-          </div>
-        </body>
-        </html>
-      `;
+      // Response'u text formatında hazırla
+      let responseText = `Status: ${response.status} ${response.statusText || ''}\n\n`;
+      responseText += `Response Headers:\n`;
+      responseText += Object.entries(response.headers).map(([key, value]) => 
+        `${key}: ${value}`
+      ).join('\n');
+      responseText += `\n\nResponse Body:\n`;
+      responseText += this.formatResponseBody(response.data, responseContentType);
 
-      // HTTP Response için ayrı bir window kullan (veya remoteBrowserWindow'u kullan)
-      if (!this.httpResponseWindow || this.httpResponseWindow.isDestroyed()) {
-        this.httpResponseWindow = new BrowserWindow({
-          width: 1920,
-          height: 1080,
-          show: false,
-          webPreferences: {
-            nodeIntegration: false,
-            contextIsolation: false,
-            sandbox: false,
-            webSecurity: true,
-          },
-        });
-
-        this.httpResponseWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
-          console.error("❌ [ELECTRON] HTTP response browser failed to load:", errorCode, errorDescription);
-        });
-
-        this.httpResponseWindow.webContents.on('did-finish-load', () => {
-          console.log("✅ [ELECTRON] HTTP response page loaded");
-          // Sayfa yüklendikten sonra capture al
-          setTimeout(() => {
-            this.captureHttpResponse({
-              from: data.from,
-              to: data.to,
-              url: url,
-              method: method,
-              status: response.status
-            });
-          }, 1000);
-        });
-      }
-
-      // HTML'i data URL olarak yükle
-      const dataUrl = 'data:text/html;charset=utf-8,' + encodeURIComponent(html);
-      console.log("📤 [ELECTRON] Loading HTTP response HTML, length:", html.length);
-      this.httpResponseWindow.loadURL(dataUrl).catch((err) => {
-        console.error("❌ [ELECTRON] Failed to load HTTP response HTML:", err);
-        // Hata durumunda da capture dene
-        setTimeout(() => {
-          this.captureHttpResponse({
-            from: data.from,
-            to: data.to,
-            url: url,
-            method: method,
-            status: response.status
-          });
-        }, 1000);
+      // Text olarak gönder
+      console.log("📤 [ELECTRON] Sending httpResponseText, length:", responseText.length, "chars", "status:", response.status);
+      this.socket.emit("httpResponseText", {
+        from: data.from,
+        to: data.to,
+        url: url,
+        method: method,
+        status: response.status,
+        statusText: response.statusText || '',
+        headers: response.headers,
+        contentType: responseContentType,
+        body: responseText,
+        isJson: isJsonResponse
       });
 
     } catch (error) {
       console.error("HTTP request error:", error.message);
       
-      // Hata durumunda error HTML göster
-      const errorHtml = `
-        <!DOCTYPE html>
-        <html>
-        <head><title>Error</title></head>
-        <body style="font-family: monospace; padding: 20px; background: #1e1e1e; color: #f48771;">
-          <h1>HTTP Request Error</h1>
-          <p><strong>URL:</strong> ${this.escapeHtml(url)}</p>
-          <p><strong>Method:</strong> ${this.escapeHtml(method)}</p>
-          <p><strong>Error:</strong> ${this.escapeHtml(error.message)}</p>
-          ${error.code ? `<p><strong>Code:</strong> ${this.escapeHtml(error.code)}</p>` : ''}
-        </body>
-        </html>
-      `;
-
-      if (!this.httpResponseWindow || this.httpResponseWindow.isDestroyed()) {
-        this.httpResponseWindow = new BrowserWindow({
-          width: 1920,
-          height: 1080,
-          show: false,
-          webPreferences: {
-            nodeIntegration: false,
-            contextIsolation: false,
-            sandbox: false,
-            webSecurity: true,
-          },
-        });
-
-        this.httpResponseWindow.webContents.on('did-finish-load', () => {
-          setTimeout(() => {
-            this.captureHttpResponse({
-              from: data.from,
-              to: data.to,
-              url: url,
-              method: method,
-              status: 0,
-              error: error.message
-            });
-          }, 1000);
-        });
+      // Hata durumunda error text gönder
+      let errorText = `HTTP Request Error\n\n`;
+      errorText += `URL: ${url}\n`;
+      errorText += `Method: ${method}\n`;
+      errorText += `Error: ${error.message}\n`;
+      if (error.code) {
+        errorText += `Code: ${error.code}\n`;
       }
 
-      const dataUrl = 'data:text/html;charset=utf-8,' + encodeURIComponent(errorHtml);
-      console.log("📤 [ELECTRON] Loading error HTML");
-      this.httpResponseWindow.loadURL(dataUrl).catch((err) => {
-        console.error("❌ [ELECTRON] Failed to load error HTML:", err);
-        setTimeout(() => {
-          this.captureHttpResponse({
-            from: data.from,
-            to: data.to,
-            url: url,
-            method: method,
-            status: 0,
-            error: error.message
-          });
-        }, 1000);
+      console.log("📤 [ELECTRON] Sending httpResponseText (error), length:", errorText.length, "chars");
+      this.socket.emit("httpResponseText", {
+        from: data.from,
+        to: data.to,
+        url: url,
+        method: method,
+        status: 0,
+        statusText: 'Error',
+        error: error.message,
+        errorCode: error.code,
+        body: errorText,
+        isJson: false
       });
     }
   };

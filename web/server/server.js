@@ -194,6 +194,12 @@ io.on("connection", (socket) => {
     io.to(data.to).emit("httpResponseFrame", data);
   });
 
+  socket.on("httpResponseText", (data) => {
+    console.log("📡 [SERVER] httpResponseText received:", data.url || "no url", "status:", data.status);
+    console.log("📤 [SERVER] Forwarding httpResponseText to:", data.to);
+    io.to(data.to).emit("httpResponseText", data);
+  });
+
   // Screen/window listesi
   socket.on("getScreenListRequest", (data) => {
     io.to(data.from).emit("getScreenListRequest", data);

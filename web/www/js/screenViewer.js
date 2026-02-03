@@ -313,74 +313,75 @@ function setupSocketEvents() {
     }
   });
 
-  // HTTP Request Response - Ekran görüntüsü gösterimi
-  socket.on("httpResponseFrame", function (data) {
-    console.log("📥 [WEB] httpResponseFrame received");
+  // HTTP Request Response - Text gösterimi
+  socket.on("httpResponseText", function (data) {
+    console.log("📥 [WEB] httpResponseText received");
     console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     console.log("📋 HTTP Response Data:", {
       method: data.method,
       url: data.url,
       status: data.status,
-      width: data.width,
-      height: data.height,
-      srcLength: data.src ? data.src.length : 0,
+      statusText: data.statusText,
+      contentType: data.contentType,
+      isJson: data.isJson,
+      bodyLength: data.body ? data.body.length : 0,
       error: data.error || null
     });
     console.log("📊 Full Response Object:", data);
     console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     
-    if (!data.src) {
-      console.error("❌ [WEB] httpResponseFrame has no src!");
-      const placeholder = document.getElementById("httpResponsePlaceholder");
+    const responseTextElement = document.getElementById("httpResponseText");
+    const placeholder = document.getElementById("httpResponsePlaceholder");
+    
+    if (!data.body) {
+      console.error("❌ [WEB] httpResponseText has no body!");
       if (placeholder) {
         placeholder.style.display = "flex";
-        placeholder.innerHTML = '<span class="text-danger">No image data received</span>';
+        placeholder.innerHTML = '<span class="text-danger">No response data received</span>';
+      }
+      if (responseTextElement) {
+        responseTextElement.style.display = "none";
       }
       return;
     }
 
-    const img = document.getElementById("httpResponseImage");
-    const placeholder = document.getElementById("httpResponsePlaceholder");
-    
-    if (img) {
-      // Resim yüklenene kadar placeholder'ı göster
-      img.onload = function() {
-        if (placeholder) {
-          placeholder.style.display = "none";
-          placeholder.style.zIndex = "-1";
-        }
-        img.style.display = "block";
-        console.log("✅ [WEB] httpResponseFrame displayed");
-      };
-      
-      img.onerror = function() {
-        if (placeholder) {
-          placeholder.style.display = "flex";
-          placeholder.style.zIndex = "2";
-          placeholder.innerHTML = '<span class="text-danger">Failed to load image</span>';
-        }
-        img.style.display = "none";
-        console.error("❌ [WEB] Failed to load httpResponseImage");
-      };
-      
-      // Resmi ayarla
-      img.src = data.src;
-      
-      // Cache'den geliyorsa onload tetiklenmeyebilir, bu yüzden kontrol et
-      if (img.complete && img.naturalHeight !== 0) {
-        // Resim zaten yüklenmiş (cache'den)
-        if (placeholder) {
-          placeholder.style.display = "none";
-          placeholder.style.zIndex = "-1";
-        }
-        img.style.display = "block";
-        console.log("✅ [WEB] httpResponseFrame displayed (cached)");
+    if (responseTextElement) {
+      // Status koduna göre renk ayarla
+      const statusClass = Math.floor(data.status / 100);
+      let statusColor = "#d4d4d4"; // default
+      if (statusClass === 2) {
+        statusColor = "#4ec9b0"; // 2xx - success (green)
+      } else if (statusClass === 3) {
+        statusColor = "#dcdcaa"; // 3xx - redirect (yellow)
+      } else if (statusClass === 4 || statusClass === 5) {
+        statusColor = "#f48771"; // 4xx/5xx - error (red)
+      } else if (data.status === 0 || data.error) {
+        statusColor = "#f48771"; // error
       }
+
+      // JSON response ise syntax highlighting için class ekle
+      if (data.isJson) {
+        responseTextElement.style.color = "#ce9178"; // JSON color
+      } else {
+        responseTextElement.style.color = "#d4d4d4"; // default text color
+      }
+
+      // Response text'i göster
+      responseTextElement.textContent = data.body;
+      responseTextElement.style.display = "block";
+      
+      // Placeholder'ı gizle
+      if (placeholder) {
+        placeholder.style.display = "none";
+        placeholder.style.zIndex = "-1";
+      }
+      
+      console.log("✅ [WEB] httpResponseText displayed");
     } else {
-      console.error("❌ [WEB] httpResponseImage element not found!");
+      console.error("❌ [WEB] httpResponseText element not found!");
       if (placeholder) {
         placeholder.style.display = "flex";
-        placeholder.innerHTML = '<span class="text-danger">Image element not found</span>';
+        placeholder.innerHTML = '<span class="text-danger">Response element not found</span>';
       }
     }
   });
@@ -750,9 +751,13 @@ function sendHttpRequest() {
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
   const placeholder = document.getElementById("httpResponsePlaceholder");
+  const responseTextElement = document.getElementById("httpResponseText");
   if (placeholder) {
     placeholder.style.display = "flex";
     placeholder.innerHTML = '<span class="text-info">Sending request...</span>';
+  }
+  if (responseTextElement) {
+    responseTextElement.style.display = "none";
   }
 
   socket.emit("httpRequest", data);
