@@ -301,56 +301,109 @@ class RemoteControl {
 
   /**
    * HTML içindeki tüm relative URL'leri absolute'ye çevir
+   * JavaScript'i bozmamak için dikkatli ol
    */
   rewriteHTMLUrls = (html, baseUrl) => {
-    // img src
-    html = html.replace(/<img([^>]*)\ssrc=["']([^"']+)["']/gi, (match, attrs, src) => {
-      const absoluteSrc = new URL(src, baseUrl).href;
-      return `<img${attrs} src="${absoluteSrc}"`;
-    });
+    try {
+      // img src - sadece tag içindeki src'leri değiştir
+      html = html.replace(/<img([^>]*?)\s+src=["']([^"']+)["']/gi, (match, attrs, src) => {
+        try {
+          // JavaScript içinde değilse değiştir
+          if (!match.includes('javascript:') && !match.includes('data:')) {
+            const absoluteSrc = new URL(src, baseUrl).href;
+            return `<img${attrs} src="${absoluteSrc}"`;
+          }
+          return match;
+        } catch (e) {
+          return match;
+        }
+      });
 
-    // script src
-    html = html.replace(/<script([^>]*)\ssrc=["']([^"']+)["']/gi, (match, attrs, src) => {
-      const absoluteSrc = new URL(src, baseUrl).href;
-      return `<script${attrs} src="${absoluteSrc}"`;
-    });
+      // script src - sadece external script'leri değiştir
+      html = html.replace(/<script([^>]*?)\s+src=["']([^"']+)["']/gi, (match, attrs, src) => {
+        try {
+          if (!src.startsWith('javascript:') && !src.startsWith('data:')) {
+            const absoluteSrc = new URL(src, baseUrl).href;
+            return `<script${attrs} src="${absoluteSrc}"`;
+          }
+          return match;
+        } catch (e) {
+          return match;
+        }
+      });
 
-    // link href (CSS, favicon, vs.)
-    html = html.replace(/<link([^>]*)\shref=["']([^"']+)["']/gi, (match, attrs, href) => {
-      const absoluteHref = new URL(href, baseUrl).href;
-      return `<link${attrs} href="${absoluteHref}"`;
-    });
+      // link href (CSS, favicon, vs.)
+      html = html.replace(/<link([^>]*?)\s+href=["']([^"']+)["']/gi, (match, attrs, href) => {
+        try {
+          if (!href.startsWith('javascript:') && !href.startsWith('data:')) {
+            const absoluteHref = new URL(href, baseUrl).href;
+            return `<link${attrs} href="${absoluteHref}"`;
+          }
+          return match;
+        } catch (e) {
+          return match;
+        }
+      });
 
-    // a href (linkler)
-    html = html.replace(/<a([^>]*)\shref=["']([^"']+)["']/gi, (match, attrs, href) => {
-      // External link'ler için özel işaretleme
-      try {
-        const absoluteHref = new URL(href, baseUrl).href;
-        // Link'e onclick ekle ki yeni istek gönderilsin
-        return `<a${attrs} href="javascript:void(0)" data-remote-url="${absoluteHref}" onclick="window.parent.postMessage({type:'remoteBrowserNavigate', url:'${absoluteHref}'}, '*')"`;
-      } catch (e) {
-        return match;
-      }
-    });
+      // a href (linkler) - JavaScript içindeki href'leri bozmamak için dikkatli
+      html = html.replace(/<a([^>]*?)\s+href=["']([^"']+)["']/gi, (match, attrs, href) => {
+        try {
+          // Hash veya javascript: linklerini olduğu gibi bırak
+          if (href.startsWith('#') || href.startsWith('javascript:') || href.startsWith('data:')) {
+            return match;
+          }
+          
+          const absoluteHref = new URL(href, baseUrl).href;
+          // Link'e onclick ekle ki yeni istek gönderilsin - ama JavaScript'i escape et
+          const escapedUrl = absoluteHref.replace(/'/g, "\\'").replace(/"/g, '\\"');
+          return `<a${attrs} href="javascript:void(0)" data-remote-url="${absoluteHref}" onclick="window.parent.postMessage({type:'remoteBrowserNavigate', url:'${escapedUrl}'}, '*')"`;
+        } catch (e) {
+          return match;
+        }
+      });
 
-    // form action
-    html = html.replace(/<form([^>]*)\saction=["']([^"']+)["']/gi, (match, attrs, action) => {
-      const absoluteAction = new URL(action, baseUrl).href;
-      // Form submit'i yakalamak için
-      return `<form${attrs} action="javascript:void(0)" data-remote-action="${absoluteAction}" onsubmit="event.preventDefault(); window.parent.postMessage({type:'remoteBrowserSubmit', url:'${absoluteAction}', formData: new FormData(this)}, '*'); return false;"`;
-    });
+      // form action - JavaScript içindeki action'ları bozmamak için
+      html = html.replace(/<form([^>]*?)\s+action=["']([^"']+)["']/gi, (match, attrs, action) => {
+        try {
+          if (action.startsWith('javascript:') || action.startsWith('#')) {
+            return match;
+          }
+          
+          const absoluteAction = new URL(action, baseUrl).href;
+          const escapedUrl = absoluteAction.replace(/'/g, "\\'").replace(/"/g, '\\"');
+          // Form submit'i yakalamak için
+          return `<form${attrs} action="javascript:void(0)" data-remote-action="${absoluteAction}" onsubmit="event.preventDefault(); const form=this; window.parent.postMessage({type:'remoteBrowserSubmit', url:'${escapedUrl}', formData: Object.fromEntries(new FormData(form))}, '*'); return false;"`;
+        } catch (e) {
+          return match;
+        }
+      });
 
-    // CSS içindeki url()
-    html = html.replace(/url\(["']?([^"')]+)["']?\)/gi, (match, url) => {
-      try {
-        const absoluteUrl = new URL(url, baseUrl).href;
-        return `url("${absoluteUrl}")`;
-      } catch (e) {
-        return match;
-      }
-    });
+      // CSS içindeki url() - sadece CSS içinde, JavaScript string'lerinde değil
+      // Bu daha karmaşık, sadece style tag'leri ve link'lerdeki CSS'te yap
+      html = html.replace(/<style([^>]*)>([\s\S]*?)<\/style>/gi, (match, attrs, cssContent) => {
+        try {
+          const rewrittenCss = cssContent.replace(/url\(["']?([^"')]+)["']?\)/gi, (cssMatch, url) => {
+            try {
+              if (!url.startsWith('data:') && !url.startsWith('javascript:')) {
+                const absoluteUrl = new URL(url, baseUrl).href;
+                return `url("${absoluteUrl}")`;
+              }
+              return cssMatch;
+            } catch (e) {
+              return cssMatch;
+            }
+          });
+          return `<style${attrs}>${rewrittenCss}</style>`;
+        } catch (e) {
+          return match;
+        }
+      });
 
-    return html;
+      return html;
+    } catch (error) {
+      console.error("Error rewriting HTML URLs:", error);
+      return html; // Hata durumunda orijinal HTML'i döndür
+    }
   };
 
   /**
