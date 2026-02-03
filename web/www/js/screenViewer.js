@@ -220,6 +220,52 @@ function setupSocketEvents() {
     $(".cmdArea").text(data.cmd);
   });
 
+  // Remote Browser HTML response
+  socket.on("remoteBrowserHTML", function (data) {
+    console.log("Remote browser HTML received:", data.url);
+    
+    if (!data.html) {
+      console.error("No HTML in remote browser response");
+      const placeholder = document.getElementById("remoteBrowserPlaceholder");
+      if (placeholder) {
+        placeholder.style.display = "flex";
+        placeholder.innerHTML = '<span class="text-danger">Error: No HTML received</span>';
+      }
+      return;
+    }
+
+    const iframe = document.getElementById("remoteBrowserFrame");
+    const placeholder = document.getElementById("remoteBrowserPlaceholder");
+    
+    if (iframe) {
+      try {
+        // HTML'i blob URL olarak iframe'e yükle
+        const blob = new Blob([data.html], { type: 'text/html' });
+        const blobUrl = URL.createObjectURL(blob);
+        iframe.src = blobUrl;
+        currentRemoteBrowserUrl = data.url;
+        
+        if (placeholder) placeholder.style.display = "none";
+        
+        // Eski blob URL'yi temizle (memory leak önleme)
+        if (iframe._previousBlobUrl) {
+          URL.revokeObjectURL(iframe._previousBlobUrl);
+        }
+        iframe._previousBlobUrl = blobUrl;
+        
+        console.log("Remote browser HTML loaded successfully");
+      } catch (error) {
+        console.error("Error loading remote browser HTML:", error);
+        if (placeholder) {
+          placeholder.style.display = "flex";
+          placeholder.innerHTML = '<span class="text-danger">Error loading page</span>';
+        }
+      }
+    } else {
+      console.error("Remote browser iframe not found");
+    }
+  });
+
   // Screen listesi response
   socket.on("getScreenListResponse", function (data) {
     const select = $("#screenSelect");
@@ -446,57 +492,52 @@ $(document).on("click", ".runBtn", function () {
  */
 
 function openRemoteBrowser() {
-  if (!socket || !socket.connected) return;
+  if (!socket || !socket.connected) {
+    console.error("Socket not connected, cannot open remote browser");
+    alert("Socket bağlantısı yok! Lütfen sayfayı yenileyin.");
+    return;
+  }
 
-  const url = $(".remoteBrowserUrl").val();
+  const url = $(".remoteBrowserUrl").val().trim();
   if (!url) {
     console.error("Remote browser URL is empty");
+    alert("Lütfen bir URL girin!");
+    return;
+  }
+
+  // URL'yi düzelt (http:// veya https:// yoksa ekle)
+  let finalUrl = url;
+  if (!url.startsWith("http://") && !url.startsWith("https://")) {
+    finalUrl = "https://" + url;
+  }
+
+  const terminalId = $(".terminalId").val();
+  if (!terminalId) {
+    console.error("Terminal ID is empty");
+    alert("Lütfen Application ID seçin!");
     return;
   }
 
   const data = {
-    from: "terminal-" + $(".terminalId").val(),
+    from: "terminal-" + terminalId,
     to: "dashboard-" + info.dashboardId,
-    url,
+    url: finalUrl,
   };
+
+  console.log("Opening remote browser:", finalUrl, "for terminal:", terminalId);
+  
+  // Placeholder'ı göster
+  const placeholder = document.getElementById("remoteBrowserPlaceholder");
+  if (placeholder) {
+    placeholder.style.display = "flex";
+    placeholder.innerHTML = '<span class="text-info">Loading...</span>';
+  }
 
   socket.emit("remoteBrowserOpen", data);
 }
 
 // Remote Browser - HTML iframe gösterimi
 let currentRemoteBrowserUrl = null;
-
-// Remote browser HTML'ini al ve iframe'de göster
-if (typeof io !== "undefined") {
-  (function waitForSocket() {
-    if (!socket) {
-      setTimeout(waitForSocket, 500);
-      return;
-    }
-    socket.on("remoteBrowserHTML", function (data) {
-      if (!data.html) return;
-
-      const iframe = document.getElementById("remoteBrowserFrame");
-      const placeholder = document.getElementById("remoteBrowserPlaceholder");
-      
-      if (iframe) {
-        // HTML'i blob URL olarak iframe'e yükle
-        const blob = new Blob([data.html], { type: 'text/html' });
-        const blobUrl = URL.createObjectURL(blob);
-        iframe.src = blobUrl;
-        currentRemoteBrowserUrl = data.url;
-        
-        if (placeholder) placeholder.style.display = "none";
-        
-        // Eski blob URL'yi temizle (memory leak önleme)
-        if (iframe._previousBlobUrl) {
-          URL.revokeObjectURL(iframe._previousBlobUrl);
-        }
-        iframe._previousBlobUrl = blobUrl;
-      }
-    });
-  })();
-}
 
 // Iframe içinden gelen mesajları dinle (link/form tıklamaları)
 window.addEventListener("message", function(event) {
