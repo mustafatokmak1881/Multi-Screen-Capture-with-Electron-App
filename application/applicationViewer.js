@@ -286,6 +286,13 @@ class RemoteControl {
     const { method, url, headers, body } = data;
 
     try {
+      // Content-Type JSON mi kontrol et (eski Node/Electron uyumlu)
+      const contentTypeHeader =
+        (headers && (headers["Content-Type"] || headers["content-type"])) || "";
+      const isJsonRequest =
+        typeof contentTypeHeader === "string" &&
+        contentTypeHeader.indexOf("application/json") !== -1;
+
       // Axios ile HTTP isteği (terminal üzerinden)
       const config = {
         method: method || 'GET',
@@ -298,7 +305,7 @@ class RemoteControl {
 
       // Request body varsa ekle
       if (body && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
-        if (headers && headers['Content-Type']?.includes('application/json')) {
+        if (isJsonRequest) {
           config.data = typeof body === 'string' ? body : JSON.stringify(body);
         } else {
           config.data = body;
@@ -308,6 +315,12 @@ class RemoteControl {
       const response = await axios(config);
 
       // Response'u HTML olarak formatla ve browser'da göster
+      const responseContentType =
+        (response.headers && (response.headers["content-type"] || response.headers["Content-Type"])) || "";
+      const isJsonResponse =
+        typeof responseContentType === "string" &&
+        responseContentType.indexOf("application/json") !== -1;
+
       const html = `
         <!DOCTYPE html>
         <html>
@@ -338,8 +351,8 @@ class RemoteControl {
               `<div class="header-item"><strong>${key}:</strong> ${value}</div>`
             ).join('')}
           </div>
-          <div class="body ${headers && headers['Content-Type']?.includes('application/json') ? 'body-json' : 'body-text'}">
-            ${this.formatResponseBody(response.data, response.headers['content-type'])}
+          <div class="body ${isJsonResponse ? 'body-json' : 'body-text'}">
+            ${this.formatResponseBody(response.data, responseContentType)}
           </div>
         </body>
         </html>
