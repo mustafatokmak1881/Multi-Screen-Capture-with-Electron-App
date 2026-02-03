@@ -223,7 +223,7 @@ function setupSocketEvents() {
   // Screen listesi response
   socket.on("getScreenListResponse", function (data) {
     const select = $("#screenSelect");
-    const currentValue = select.val(); // Mevcut seçimi sakla
+    const currentScreenId = select.find("option:selected").data("id"); // Mevcut seçimin ID'sini sakla
     
     select.empty();
     
@@ -235,16 +235,23 @@ function setupSocketEvents() {
         const isScreen = screen.id.startsWith("screen:") || screen.id.startsWith("Screen");
         const label = screen.name || (isScreen ? `Screen ${index + 1}` : screen.name);
         const type = isScreen ? 'screen' : 'window';
-        select.append(`<option value="${index}" data-type="${type}" data-id="${screen.id}">${label}</option>`);
+        // Value olarak screen.id kullan (index değil)
+        select.append(`<option value="${screen.id}" data-type="${type}" data-name="${screen.name}">${label}</option>`);
       });
       
-      // Eğer mevcut seçim hala geçerliyse onu koru, değilse boş bırak
-      if (currentValue && select.find(`option[value="${currentValue}"]`).length > 0) {
-        select.val(currentValue);
-        // Mevcut seçim varsa screenshot al (kullanıcı daha önce seçmişti)
-        setTimeout(() => {
-          getScreenshot();
-        }, 100);
+      // Eğer mevcut seçim hala geçerliyse onu koru
+      if (currentScreenId) {
+        const matchingOption = select.find(`option[value="${currentScreenId}"]`);
+        if (matchingOption.length > 0) {
+          select.val(currentScreenId);
+          // Mevcut seçim varsa screenshot al (kullanıcı daha önce seçmişti)
+          setTimeout(() => {
+            getScreenshot();
+          }, 100);
+        } else {
+          // Mevcut seçim artık yok - boş bırak
+          select.val("");
+        }
       } else {
         // Yeni liste yüklendi, seçim yok - boş bırak, screenshot alma
         select.val("");
@@ -264,8 +271,11 @@ function getScreenshot() {
     return;
   }
   
-  const screenSelect = $("#screenSelect").val();
-  if (!screenSelect || screenSelect === "") {
+  const screenSelect = $("#screenSelect");
+  const screenId = screenSelect.val();
+  const screenName = screenSelect.find("option:selected").data("name");
+  
+  if (!screenId || screenId === "") {
     console.error("No screen selected");
     return;
   }
@@ -273,11 +283,12 @@ function getScreenshot() {
   var data = {
     from: "terminal-" + $(".terminalId").val(),
     to: "dashboard-" + info.dashboardId,
-    screen: screenSelect, // Screen select'ten al
+    screenId: screenId, // Screen ID (doğrudan ID kullan)
+    screenName: screenName, // Screen name (opsiyonel, debug için)
     dimension: $(".screen").val(), // Max width: 1280, max height: 720
   };
   
-  console.log("Requesting screenshot for screen index:", screenSelect);
+  console.log("Requesting screenshot for screen ID:", screenId, "Name:", screenName);
   socket.emit("screenshotRequest", data);
 }
 

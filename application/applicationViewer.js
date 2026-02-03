@@ -39,17 +39,47 @@ class RemoteControl {
           },
         });
 
-        const screenIndex = parseInt(data.screen);
-        if (screenIndex >= 0 && screenIndex < sources.length) {
-          data["src"] = sources[screenIndex].thumbnail.toDataURL();
-          this.socket.emit("screenshotResponse", data);
-        } else {
-          console.error("Invalid screen index:", screenIndex, "Available sources:", sources.length);
+        // Screen ID ile bul (index değil)
+        const screenId = data.screenId || data.screen; // Eski kod uyumluluğu için data.screen de kontrol et
+        
+        let foundSource = null;
+        try {
+          if (screenId) {
+            // ID ile ara
+            foundSource = sources.find(source => source.id === screenId);
+            
+            // Eğer bulunamazsa, eski index yöntemini dene (geriye dönük uyumluluk)
+            if (!foundSource && !isNaN(parseInt(screenId))) {
+              const screenIndex = parseInt(screenId);
+              if (screenIndex >= 0 && screenIndex < sources.length) {
+                foundSource = sources[screenIndex];
+              }
+            }
+          }
+
+          if (foundSource) {
+            try {
+              // Window kapanmış olabilir, thumbnail alma işlemini try-catch içine al
+              data["src"] = foundSource.thumbnail.toDataURL();
+              console.log("Screenshot taken for:", foundSource.name, "ID:", foundSource.id);
+              this.socket.emit("screenshotResponse", data);
+            } catch (thumbnailError) {
+              console.error("Error getting thumbnail (window may be closed):", thumbnailError.message);
+              data["src"] = "";
+              this.socket.emit("screenshotResponse", data);
+            }
+          } else {
+            console.error("Screen not found. ID:", screenId, "Available sources:", sources.length);
+            data["src"] = "";
+            this.socket.emit("screenshotResponse", data);
+          }
+        } catch (findError) {
+          console.error("Error finding source (window may be closed):", findError.message);
           data["src"] = "";
           this.socket.emit("screenshotResponse", data);
         }
       } catch (err) {
-        console.error("Error getting screen data:", err);
+        console.error("Error getting screen data:", err.message);
         data["src"] = "";
         this.socket.emit("screenshotResponse", data);
       }
