@@ -18,8 +18,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "rct-client": "^1.0.2",
-    "rtc-client": "^1.0.16",
     "socket.io-client": "^4.8.3"
   },
   "engines": {
