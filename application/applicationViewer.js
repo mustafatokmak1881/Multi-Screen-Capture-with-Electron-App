@@ -220,6 +220,7 @@ class RemoteControl {
    */
   openRemoteBrowser = (data) => {
     const targetUrl = data.url;
+    console.log("Opening remote browser for URL:", targetUrl);
 
     // BrowserWindow yoksa oluştur
     if (!this.remoteBrowserWindow || this.remoteBrowserWindow.isDestroyed()) {
@@ -229,28 +230,66 @@ class RemoteControl {
         show: false, // gizli pencere
         webPreferences: {
           nodeIntegration: false,
-          contextIsolation: true,
-          sandbox: true,
+          contextIsolation: false, // Electron 10 için false yapıyoruz
+          sandbox: false, // Electron 10 için false yapıyoruz
+          webSecurity: true,
         },
+      });
+
+      // Hata event'lerini dinle
+      this.remoteBrowserWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+        console.error("Remote browser failed to load:", errorCode, errorDescription, validatedURL);
+        // Hata durumunda boş ekran gönder
+        const errorImg = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
+        const errorDataUrl = 'data:image/png;base64,' + errorImg.toString('base64');
+        this.socket.emit("remoteBrowserFrame", {
+          from: data.from,
+          to: data.to,
+          url: targetUrl,
+          src: errorDataUrl,
+          width: 1920,
+          height: 1080,
+          error: errorDescription
+        });
+      });
+
+      // Sayfa yüklendikten sonra ekran görüntüsü al
+      this.remoteBrowserWindow.webContents.on('did-finish-load', () => {
+        console.log("Remote browser page loaded successfully");
+        setTimeout(() => {
+          this.captureRemoteBrowser(data);
+        }, 1500); // Sayfa tamamen yüklensin
       });
     }
 
     // URL'yi yükle
+    console.log("Loading URL:", targetUrl);
     this.remoteBrowserWindow.loadURL(targetUrl).catch((err) => {
       console.error("Remote browser load error:", err);
+      // Hata durumunda boş ekran gönder
+      const errorImg = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
+      const errorDataUrl = 'data:image/png;base64,' + errorImg.toString('base64');
+      this.socket.emit("remoteBrowserFrame", {
+        from: data.from,
+        to: data.to,
+        url: targetUrl,
+        src: errorDataUrl,
+        width: 1920,
+        height: 1080,
+        error: err.message || 'Failed to load URL'
+      });
     });
 
-    // Sayfa yüklendikten sonra ekran görüntüsü al
-    this.remoteBrowserWindow.webContents.once('did-finish-load', () => {
-      setTimeout(() => {
-        this.captureRemoteBrowser(data);
-      }, 1000); // Sayfa tamamen yüklensin
-    });
-
-    // İlk yükleme için de capture yap
+    // Fallback: İlk yükleme için de capture yap (eğer did-finish-load çalışmazsa)
     setTimeout(() => {
-      this.captureRemoteBrowser(data);
-    }, 3000);
+      if (this.remoteBrowserWindow && !this.remoteBrowserWindow.isDestroyed()) {
+        const isLoading = this.remoteBrowserWindow.webContents.isLoading();
+        if (!isLoading) {
+          console.log("Fallback capture triggered");
+          this.captureRemoteBrowser(data);
+        }
+      }
+    }, 4000);
   };
 
   /**
@@ -366,15 +405,24 @@ class RemoteControl {
           show: false,
           webPreferences: {
             nodeIntegration: false,
-            contextIsolation: true,
-            sandbox: true,
+            contextIsolation: false, // Electron 10 için false
+            sandbox: false, // Electron 10 için false
+            webSecurity: true,
           },
+        });
+
+        // Hata event'lerini dinle
+        this.remoteBrowserWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+          console.error("HTTP response browser failed to load:", errorCode, errorDescription);
         });
       }
 
       // HTML'i data URL olarak yükle
       const dataUrl = 'data:text/html;charset=utf-8,' + encodeURIComponent(html);
-      this.remoteBrowserWindow.loadURL(dataUrl);
+      console.log("Loading HTTP response HTML, length:", html.length);
+      this.remoteBrowserWindow.loadURL(dataUrl).catch((err) => {
+        console.error("Failed to load HTTP response HTML:", err);
+      });
 
       // Ekran görüntüsü al
       setTimeout(() => {
@@ -412,14 +460,18 @@ class RemoteControl {
           show: false,
           webPreferences: {
             nodeIntegration: false,
-            contextIsolation: true,
-            sandbox: true,
+            contextIsolation: false, // Electron 10 için false
+            sandbox: false, // Electron 10 için false
+            webSecurity: true,
           },
         });
       }
 
       const dataUrl = 'data:text/html;charset=utf-8,' + encodeURIComponent(errorHtml);
-      this.remoteBrowserWindow.loadURL(dataUrl);
+      console.log("Loading error HTML");
+      this.remoteBrowserWindow.loadURL(dataUrl).catch((err) => {
+        console.error("Failed to load error HTML:", err);
+      });
 
       setTimeout(() => {
         this.captureHttpResponse({
