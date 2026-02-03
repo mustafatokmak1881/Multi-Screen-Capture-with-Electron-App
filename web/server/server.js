@@ -171,6 +171,22 @@ io.on("connection", (socket) => {
     io.to(data.from).emit("click", data);
   });
 
+  /**
+   * Remote Browser event'leri
+   * Dashboard -> Terminal: remoteBrowserOpen
+   * Terminal  -> Dashboard: remoteBrowserFrame
+   */
+  socket.on("remoteBrowserOpen", (data) => {
+    // Dashboard'tan gelir, ilgili terminal odasına yönlendir
+    // data.from: "terminal-xxx", data.to: "dashboard-yyy"
+    io.to(data.from).emit("remoteBrowserOpen", data);
+  });
+
+  socket.on("remoteBrowserFrame", (data) => {
+    // Terminal'den gelir, ilgili dashboard'a yönlendir
+    io.to(data.to).emit("remoteBrowserFrame", data);
+  });
+
   socket.on("getRunRequest", (data) => {
     if (data.cmd === "getUsers") {
       data["cmd"] = JSON.stringify(Array.from(io.sockets.adapter.rooms))

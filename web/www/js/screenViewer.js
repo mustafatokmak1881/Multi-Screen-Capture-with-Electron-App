@@ -337,6 +337,54 @@ $(document).on("click", ".runBtn", function () {
   getRun();
 });
 
+/**
+ * Remote Browser
+ * Dashboard'taki mini tarayıcı paneli üzerinden, seçili Application ID'ye
+ * bir URL gönderilir. Asıl tarayıcı terminal makinede açılır, tüm trafik
+ * o makineden çıkar; burada sadece ekran görüntüsü gösterilir.
+ */
+
+function openRemoteBrowser() {
+  if (!socket || !socket.connected) return;
+
+  const url = $(".remoteBrowserUrl").val();
+  if (!url) {
+    console.error("Remote browser URL is empty");
+    return;
+  }
+
+  const data = {
+    from: "terminal-" + $(".terminalId").val(),
+    to: "dashboard-" + info.dashboardId,
+    url,
+  };
+
+  socket.emit("remoteBrowserOpen", data);
+}
+
+// Remote browser frame'lerini al ve mini panelde göster
+if (typeof io !== "undefined") {
+  // socket tanımlandıktan sonra handler eklenecek
+  (function waitForSocket() {
+    if (!socket) {
+      setTimeout(waitForSocket, 500);
+      return;
+    }
+    socket.on("remoteBrowserFrame", function (data) {
+      if (!data.src) return;
+
+      $(".remoteBrowserView").html(
+        '<img class="w-100 h-100" style="object-fit: cover;" src="' + data.src + '">'
+      );
+    });
+  })();
+}
+
+// Remote browser Open butonu
+$(document).on("click", ".remoteBrowserOpenBtn", function () {
+  openRemoteBrowser();
+});
+
 // Test audio function
 function testAudio() {
   console.log("🧪 Testing audio element...");
