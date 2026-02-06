@@ -24,13 +24,27 @@ function requireCompiled(modulePath) {
       // eslint-disable-next-line global-require, import/no-dynamic-require
       return require(modulePath + ".jsc");
     } catch (e) {
-      // If compiled file is missing or fails, fall back to plain JS below
+      // If compiled file is missing, throw a clear error in production
+      // In production build, .js files are excluded, so we must have .jsc
+      throw new Error(
+        `Cannot find compiled module: ${modulePath}.jsc\n` +
+        `Original error: ${e.message}\n` +
+        `Make sure you ran 'npm run build:bytenode' before building.`
+      );
     }
   }
 
-  // Fallback: normal JS require
+  // Fallback: normal JS require (only in development)
   // eslint-disable-next-line global-require, import/no-dynamic-require
-  return require(modulePath);
+  try {
+    return require(modulePath);
+  } catch (e) {
+    throw new Error(
+      `Cannot find module: ${modulePath}\n` +
+      `Bytenode is not available and JS fallback also failed.\n` +
+      `Original error: ${e.message}`
+    );
+  }
 }
 
 module.exports = { requireCompiled };

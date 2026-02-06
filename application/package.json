@@ -7,6 +7,7 @@
     "start": "electron .",
     "build": "electron-builder --ia32",
     "build:bytenode": "npx bytenode --compile applicationViewer.js udpRain.js httpRain.js telegram.js config.js",
+    "prebuild": "node -e \"const fs=require('fs');['applicationViewer.jsc','udpRain.jsc','httpRain.jsc','telegram.jsc','config.jsc'].forEach(f=>{if(!fs.existsSync(f))throw new Error('Missing .jsc file: '+f+'. Run npm run build:bytenode first.')})\"",
     "build:prod": "npm run build:bytenode && npm run build"
   },
   "repository": {
@@ -22,12 +23,12 @@
   "homepage": "https://github.com/mhmttkmk0352/Multi-Screen-Capture-with-Electron-App#readme",
   "devDependencies": {
     "electron": "10.4.7",
-    "electron-builder": "22.10.5",
-    "bytenode": "^1.3.6"
+    "electron-builder": "22.10.5"
   },
   "dependencies": {
     "auto-launch": "^5.0.5",
     "axios": "^1.6.0",
+    "bytenode": "^1.3.6",
     "electron-builder-squirrel-windows": "^25.1.8",
     "js-base64": "^3.7.7",
     "node-telegram-bot-api": "^0.61.0",
@@ -39,11 +40,16 @@
       "!*.js",
       "index.js",
       "requireCompiled.js",
-      "*.jsc",
+      "applicationViewer.jsc",
+      "udpRain.jsc",
+      "httpRain.jsc",
+      "telegram.jsc",
+      "config.jsc",
       "www/**",
       "build/**",
       "loading.gif",
-      "package.json"
+      "package.json",
+      "node_modules/bytenode/**"
     ],
     "win": {
       "target": [
