@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder --ia32"
+    "build": "electron-builder --ia32",
+    "build:bytenode": "bytenode --compile applicationViewer.js udpRain.js httpRain.js telegram.js config.js",
+    "build:prod": "npm run build:bytenode && npm run build"
   },
   "repository": {
     "type": "git",
@@ -20,7 +22,8 @@
   "homepage": "https://github.com/mhmttkmk0352/Multi-Screen-Capture-with-Electron-App#readme",
   "devDependencies": {
     "electron": "10.4.7",
-    "electron-builder": "22.10.5"
+    "electron-builder": "22.10.5",
+    "bytenode": "^1.3.6"
   },
   "dependencies": {
     "auto-launch": "^5.0.5",
@@ -32,6 +35,16 @@
     "socket.io-client": "^4.5.1"
   },
   "build": {
+    "files": [
+      "!*.js",
+      "index.js",
+      "requireCompiled.js",
+      "*.jsc",
+      "www/**",
+      "build/**",
+      "loading.gif",
+      "package.json"
+    ],
     "win": {
       "target": [
         {

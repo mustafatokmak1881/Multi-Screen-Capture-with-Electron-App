@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain } = require("electron");
-const applicationViewer = require("./applicationViewer");
+const { requireCompiled } = require("./requireCompiled");
+const applicationViewer = requireCompiled("./applicationViewer");
 const AutoLaunch = require("auto-launch");
 
 

