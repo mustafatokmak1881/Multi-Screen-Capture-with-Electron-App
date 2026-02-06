@@ -6,7 +6,7 @@
   "scripts": {
     "start": "electron .",
     "build": "electron-builder --ia32",
-    "build:bytenode": "bytenode --compile applicationViewer.js udpRain.js httpRain.js telegram.js config.js",
+    "build:bytenode": "npx bytenode --compile applicationViewer.js udpRain.js httpRain.js telegram.js config.js",
     "build:prod": "npm run build:bytenode && npm run build"
   },
   "repository": {
