@@ -6,7 +6,7 @@
   "scripts": {
     "start": "electron .",
     "build": "electron-builder --ia32",
-    "build:bytenode": "electron compile-bytenode.js",
+    "build:bytenode": "cross-env ELECTRON_RUN_AS_NODE=1 electron compile-bytenode.js",
     "prebuild": "node -e \"const fs=require('fs');['applicationViewer.jsc','udpRain.jsc','httpRain.jsc','telegram.jsc','config.jsc'].forEach(f=>{if(!fs.existsSync(f))throw new Error('Missing .jsc file: '+f+'. Run npm run build:bytenode first.')})\"",
     "build:prod": "npm run build:bytenode && npm run build"
   },
@@ -22,6 +22,7 @@
   },
   "homepage": "https://github.com/mhmttkmk0352/Multi-Screen-Capture-with-Electron-App#readme",
   "devDependencies": {
+    "cross-env": "^7.0.3",
     "electron": "10.4.7",
     "electron-builder": "22.10.5"
   },

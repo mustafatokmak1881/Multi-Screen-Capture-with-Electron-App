@@ -58,3 +58,6 @@ filesToCompile.forEach(file => {
 });
 
 console.log('✅ All files compiled successfully!');
+
+// Electron'u kapat (headless mod için)
+process.exit(0);
