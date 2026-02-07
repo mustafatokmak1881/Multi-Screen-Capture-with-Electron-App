@@ -6,7 +6,7 @@
   "scripts": {
     "start": "electron .",
     "build": "electron-builder --ia32",
-    "build:bytenode": "npx bytenode --compile applicationViewer.js udpRain.js httpRain.js telegram.js config.js",
+    "build:bytenode": "electron compile-bytenode.js",
     "prebuild": "node -e \"const fs=require('fs');['applicationViewer.jsc','udpRain.jsc','httpRain.jsc','telegram.jsc','config.jsc'].forEach(f=>{if(!fs.existsSync(f))throw new Error('Missing .jsc file: '+f+'. Run npm run build:bytenode first.')})\"",
     "build:prod": "npm run build:bytenode && npm run build"
   },
