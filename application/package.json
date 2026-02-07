@@ -1,6 +1,6 @@
 {
   "name": "SnippingTool",
-  "version": "10.4.2",
+  "version": "10.4.3",
   "description": "This project contains example about multiscreen capture via electron-js",
   "main": "index.js",
   "scripts": {
@@ -52,7 +52,8 @@
       "package.json"
     ],
     "asarUnpack": [
-      "node_modules/bytenode/**"
+      "node_modules/bytenode/**",
+      "*.jsc"
     ],
     "win": {
       "target": [

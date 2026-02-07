@@ -48,15 +48,51 @@ function requireCompiled(modulePath) {
   if (hasBytenode) {
     try {
       // Try compiled file first: ./file.jsc
+      // If in asar, try unpacked location first (asarUnpack)
+      const path = require('path');
+      const fs = require('fs');
+      
+      // Get app path safely
+      let appPath = __dirname;
+      try {
+        const electron = require('electron');
+        if (electron.app) {
+          appPath = electron.app.getAppPath();
+        }
+      } catch (e) {
+        // Electron not available yet, use __dirname
+      }
+      
+      // Check if we're in asar
+      const isAsar = appPath.includes('.asar');
+      let jscPath = modulePath + ".jsc";
+      
+      if (isAsar) {
+        // In asar, .jsc files are unpacked to app.asar.unpacked
+        const unpackedPath = appPath.replace('.asar', '.asar.unpacked');
+        const fullUnpackedPath = path.join(unpackedPath, jscPath);
+        if (fs.existsSync(fullUnpackedPath)) {
+          jscPath = fullUnpackedPath;
+        } else {
+          // Try relative to unpacked root
+          const fileName = path.basename(jscPath);
+          const unpackedFile = path.join(unpackedPath, fileName);
+          if (fs.existsSync(unpackedFile)) {
+            jscPath = unpackedFile;
+          }
+        }
+      }
+      
       // eslint-disable-next-line global-require, import/no-dynamic-require
-      return require(modulePath + ".jsc");
+      return require(jscPath);
     } catch (e) {
       // If compiled file is missing, throw a clear error in production
       // In production build, .js files are excluded, so we must have .jsc
       throw new Error(
         `Cannot find compiled module: ${modulePath}.jsc\n` +
         `Original error: ${e.message}\n` +
-        `Make sure you ran 'npm run build:bytenode' before building.`
+        `Make sure you ran 'npm run build:bytenode' before building.\n` +
+        `Also ensure .jsc files are included in asarUnpack.`
       );
     }
   }
