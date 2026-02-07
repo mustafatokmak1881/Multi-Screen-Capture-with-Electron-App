@@ -2,6 +2,31 @@
 let hasBytenode = false;
 let bytenodeError = null;
 
+// Patch for Node.js 12.x compatibility (Electron 10.4.7)
+// bytenode 1.3.0+ requires Node.js 16+ features, but we're on Node.js 12.x
+// Polyfill node:assert/strict for older Node.js versions
+try {
+  const Module = require('module');
+  const originalRequire = Module.prototype.require;
+  Module.prototype.require = function(id) {
+    if (id === 'node:assert/strict') {
+      return require('assert');
+    }
+    if (id && id.startsWith('node:')) {
+      // Try to load as regular module (remove node: prefix)
+      const regularId = id.replace(/^node:/, '');
+      try {
+        return require(regularId);
+      } catch (e) {
+        // If regular module also fails, continue with original require
+      }
+    }
+    return originalRequire.apply(this, arguments);
+  };
+} catch (e) {
+  // Ignore polyfill errors
+}
+
 try {
   // Register .jsc loader if bytenode is installed (production build)
   // This will throw in dev if bytenode is not installed; we silently ignore.
