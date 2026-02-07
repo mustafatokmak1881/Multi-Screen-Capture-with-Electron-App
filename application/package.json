@@ -48,7 +48,9 @@
       "www/**",
       "build/**",
       "loading.gif",
-      "package.json",
+      "package.json"
+    ],
+    "asarUnpack": [
       "node_modules/bytenode/**"
     ],
     "win": {

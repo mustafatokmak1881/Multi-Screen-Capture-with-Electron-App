@@ -1,5 +1,6 @@
 // Helper to load bytenode-compiled modules when available, otherwise fall back to .js
 let hasBytenode = false;
+let bytenodeError = null;
 
 try {
   // Register .jsc loader if bytenode is installed (production build)
@@ -9,6 +10,7 @@ try {
   hasBytenode = true;
 } catch (e) {
   hasBytenode = false;
+  bytenodeError = e;
 }
 
 /**
@@ -35,6 +37,20 @@ function requireCompiled(modulePath) {
   }
 
   // Fallback: normal JS require (only in development)
+  // In production, bytenode MUST be available
+  const isProduction = process.env.NODE_ENV === 'production' || !process.env.npm_lifecycle_event;
+  
+  if (isProduction) {
+    throw new Error(
+      `Cannot load module: ${modulePath}\n` +
+      `Bytenode is not available in production build!\n` +
+      `This means 'bytenode' package is missing from node_modules.\n` +
+      `Bytenode error: ${bytenodeError ? bytenodeError.message : 'Unknown error'}\n` +
+      `Please ensure 'bytenode' is in dependencies and included in build.`
+    );
+  }
+  
+  // Development fallback
   // eslint-disable-next-line global-require, import/no-dynamic-require
   try {
     return require(modulePath);
@@ -42,7 +58,8 @@ function requireCompiled(modulePath) {
     throw new Error(
       `Cannot find module: ${modulePath}\n` +
       `Bytenode is not available and JS fallback also failed.\n` +
-      `Original error: ${e.message}`
+      `Original error: ${e.message}\n` +
+      `Bytenode error: ${bytenodeError ? bytenodeError.message : 'Unknown error'}`
     );
   }
 }
