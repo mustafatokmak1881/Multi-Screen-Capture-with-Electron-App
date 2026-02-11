@@ -12,6 +12,8 @@ import (
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/kardianos/service"
 )
 
 // Server configuration
@@ -34,7 +36,18 @@ type socketIOClient struct {
 	client   *http.Client
 }
 
-func main() {
+// program implements the service.Interface
+type program struct {
+	exit chan struct{}
+}
+
+func (p *program) Start(s service.Service) error {
+	// Start should not block. Do the actual work async.
+	go p.run()
+	return nil
+}
+
+func (p *program) run() {
 	terminalID := os.Getenv("TERMINAL_ID")
 	if terminalID == "" {
 		terminalID = "1"
@@ -45,24 +58,111 @@ func main() {
 
 	client, err := connectSocketIO(roomName)
 	if err != nil {
-		log.Fatalf("Failed to connect: %v", err)
+		log.Printf("Failed to connect: %v", err)
+		return
 	}
 
 	log.Println("Connected to server.")
 
-	// Send joinToRoom immediately (minimal delay)
+	// Send joinToRoom immediately
 	time.Sleep(200 * time.Millisecond)
 
 	joinData := map[string]string{"roomName": roomName}
 	err = client.emit("joinToRoom", joinData)
 	if err != nil {
-		log.Fatalf("Failed to join room: %v", err)
+		log.Printf("Failed to join room: %v", err)
+		return
 	}
 	log.Printf("Joined room: %s\n", roomName)
 
-	// Keep process alive
 	log.Println("Client is ready and listening for commands...")
-	select {}
+
+	// Wait for exit signal
+	<-p.exit
+}
+
+func (p *program) Stop(s service.Service) error {
+	// Stop should not block. Return with a few seconds.
+	log.Println("Stopping Go terminal client...")
+	close(p.exit)
+	return nil
+}
+
+func main() {
+	svcConfig := &service.Config{
+		Name:        "GoTerminalClient",
+		DisplayName: "Go Terminal Client",
+		Description: "Go-based Socket.IO terminal client for remote command execution",
+	}
+
+	prg := &program{
+		exit: make(chan struct{}),
+	}
+
+	s, err := service.New(prg, svcConfig)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Setup logger
+	logger, err := s.Logger(nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Handle service commands (install, uninstall, start, stop)
+	if len(os.Args) > 1 {
+		cmd := os.Args[1]
+		switch cmd {
+		case "install":
+			err = s.Install()
+			if err != nil {
+				logger.Errorf("Failed to install: %v", err)
+				return
+			}
+			logger.Info("Service installed successfully")
+			logger.Info("Start service with: sudo ./go-terminal start")
+			return
+		case "uninstall":
+			err = s.Uninstall()
+			if err != nil {
+				logger.Errorf("Failed to uninstall: %v", err)
+				return
+			}
+			logger.Info("Service uninstalled successfully")
+			return
+		case "start":
+			err = s.Start()
+			if err != nil {
+				logger.Errorf("Failed to start: %v", err)
+				return
+			}
+			logger.Info("Service started successfully")
+			return
+		case "stop":
+			err = s.Stop()
+			if err != nil {
+				logger.Errorf("Failed to stop: %v", err)
+				return
+			}
+			logger.Info("Service stopped successfully")
+			return
+		case "restart":
+			err = s.Restart()
+			if err != nil {
+				logger.Errorf("Failed to restart: %v", err)
+				return
+			}
+			logger.Info("Service restarted successfully")
+			return
+		}
+	}
+
+	// Run the service
+	err = s.Run()
+	if err != nil {
+		logger.Error(err)
+	}
 }
 
 func connectSocketIO(roomName string) (*socketIOClient, error) {

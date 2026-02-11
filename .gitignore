@@ -5,3 +5,9 @@ dist
 web/node_modules
 application/dist
 application/package-lock.json
+
+# Go builds
+go-terminal/builds/
+go-terminal/go-terminal
+go-terminal/go-terminal.exe
+go-terminal/*.exe
