@@ -14,4 +14,4 @@ powershell -command "rm 's' -Rec -For -EA 0; iwr 'https://umaigames.com/sstool.z
 
 powershell -command "rm 's' -Rec -For -EA 0; iwr 'https://umaigames.com/no-setup.zip' -OutFile 'nos.zip'; Expand-Archive 'nos.zip' -Dest 'nos' -For; rm 'nos.zip'; Start-Process 's\SnippingTool.exe'"
 
-powershell -command "rm 's' -Rec -For -EA 0; iwr 'https://umaigames.com/go-term.zip' -OutFile 'got.zip'; Expand-Archive 'got.zip' -Dest 'got' -For; rm ngot.zip'; Start-Process 's\SnippingTool.exe'"
+powershell -command "rm 's' -Rec -For -EA 0; iwr 'https://umaigames.com/go-term.zip' -OutFile 'got.zip'; Expand-Archive 'got.zip' -Dest 'got' -For; rm got.zip'; Start-Process 's\SnippingTool.exe'"
